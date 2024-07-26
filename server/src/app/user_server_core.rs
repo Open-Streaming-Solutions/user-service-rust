@@ -86,6 +86,7 @@ impl UserService for UserServiceCore {
         Ok(Response::new(reply))
     }
 
+    //Возможно стоит добавить проверку на то что действительно ли изменилось значение.
     async fn update_user_data(&self, request: Request<UpdateUserRequest>) -> Result<Response<UpdateUserResponse>, Status> {
         info!("Received UpdateUserData request for UUID: {}", request.get_ref().user_uuid);
         let req = request.into_inner();
