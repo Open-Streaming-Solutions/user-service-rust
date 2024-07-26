@@ -6,7 +6,7 @@ use clap::{Parser, ValueEnum};
 
 #[derive(Debug, ValueEnum, Clone)]
 enum Actions {
-    GetDataById,
+    GetUserDataById,
     Put,
     Update,
     GetAll,
@@ -93,14 +93,12 @@ async fn get_all_users(client: &mut UserServiceClient<Channel>) -> Result<(), Bo
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Парсинг аргументов командной строки
     let args = Args::parse();
 
-    // Создание клиента gRPC
     let mut client = UserServiceClient::connect("http://127.0.0.1:8080").await?;
 
     match args.action {
-        Actions::Put | Actions::GetDataById | Actions::Update => {
+        Actions::Put | Actions::GetUserDataById | Actions::Update => {
             let user_uuid_str = args.user_uuid.as_deref().ok_or("user_uuid is required for this action")?;
             let user_uuid = Uuid::parse_str(user_uuid_str)?;
 
@@ -108,7 +106,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Actions::Put => {
                     put_user_data(&mut client, &user_uuid, &args.user_name, &args.user_email).await?;
                 },
-                Actions::GetDataById => {
+                Actions::GetUserDataById => {
                     get_user_data_by_id(&mut client, &user_uuid).await?;
                 },
                 Actions::Update => {
