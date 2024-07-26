@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package rpc;
+
+service UserService {
+  rpc GetUserData (GetUserRequest) returns (GetUserResponse) {}
+  rpc PutUserData (PutUserRequest) returns (PutUserResponse) {}
+  rpc UpdateUserData (UpdateUserRequest) returns (UpdateUserResponse) {}
+  rpc GetAllUsers (GetAllUsersRequest) returns (GetAllUsersResponse) {}
+}
+
+message GetUserRequest {
+  string user_uuid = 1;
+}
+
+message GetUserResponse {
+  string user_name = 1;
+  string user_email = 2;
+}
+
+message PutUserRequest {
+  string user_uuid = 1;
+  string user_name = 2;
+  string user_email = 3;
+}
+
+message PutUserResponse {
+  string message = 1;
+}
+
+message UpdateUserRequest {
+  string user_uuid = 1;
+  string user_name = 2;
+  string user_email = 3;
+}
+
+message UpdateUserResponse {
+  string message = 1;
+}
+message GetAllUsersRequest {}
+
+message GetAllUsersResponse {
+  repeated User users = 1;
+}
+
+message User {
+  string user_uuid = 1;
+  string user_name = 2;
+  string user_email = 3;
+}
