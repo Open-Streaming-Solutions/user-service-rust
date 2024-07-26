@@ -3,17 +3,18 @@ syntax = "proto3";
 package rpc;
 
 service UserService {
-  rpc GetUserData (GetUserRequest) returns (GetUserResponse) {}
+  rpc GetUserDataById (GetUserByIdRequest) returns (GetUserByIdResponse) {}
+  rpc GetUserIdByNickname (GetUserIdByNicknameRequest) returns (GetUserIdByNicknameResponse) {}
   rpc PutUserData (PutUserRequest) returns (PutUserResponse) {}
   rpc UpdateUserData (UpdateUserRequest) returns (UpdateUserResponse) {}
   rpc GetAllUsers (GetAllUsersRequest) returns (GetAllUsersResponse) {}
 }
 
-message GetUserRequest {
+message GetUserByIdRequest {
   string user_uuid = 1;
 }
 
-message GetUserResponse {
+message GetUserByIdResponse {
   string user_name = 1;
   string user_email = 2;
 }
@@ -47,4 +48,12 @@ message User {
   string user_uuid = 1;
   string user_name = 2;
   string user_email = 3;
+}
+
+message GetUserIdByNicknameRequest {
+  string user_name = 1;
+}
+
+message GetUserIdByNicknameResponse {
+  string user_uuid = 1;
 }

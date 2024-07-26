@@ -26,6 +26,11 @@ impl InternalRepository {
     pub fn get_user_id(&self, user_id: &Uuid) -> Option<Uuid> {
         self.storage.get(user_id).map(|kv| *kv.key())
     }
+    pub fn get_user_id_by_nickname(&self, user_name: &str) -> Option<Uuid> {
+        self.storage.iter()
+            .find(|kv| kv.value().user_name == user_name)
+            .map(|kv| *kv.key())
+    }
 
     pub fn get_all_users(&self) -> Vec<User> {
         self.storage.iter().map(|kv| kv.value().clone()).collect()

@@ -1,47 +1,16 @@
-/*
-cargo run -- -a put -i 0189a30a-60c7-7135-b683-7d7f3783d4b7 -n test1 -e test@test.ru
-cargo run -- -a put -i 0189a30a-60c7-7136-b98e-9c2d4f2734f1 -n test2 -e test@test.ru
-cargo run -- -a put -i 0189a30a-60c7-7137-b1a3-8a6a3d9076fa -n test3 -e test@test.ru
-cargo run -- -a put -i 0189a30a-60c7-7138-8a68-2d4c5b617a98 -n test4 -e test@test.ru
-cargo run -- -a put -i 0189a30a-60c7-7139-b187-2e7e3b297efb -n test5 -e test@test.ru
-
-cargo run -- -a get -i 0189a30a-60c7-7135-b683-7d7f3783d4b7
-cargo run -- -a get -i 0189a30a-60c7-7136-b98e-9c2d4f2734f1
-cargo run -- -a get -i 0189a30a-60c7-7137-b1a3-8a6a3d9076fa
-cargo run -- -a get -i 0189a30a-60c7-7138-8a68-2d4c5b617a98
-cargo run -- -a get -i 0189a30a-60c7-7139-b187-2e7e3b297efb
-
-cargo run -- -a update -i 0189a30a-60c7-7135-b683-7d7f3783d4b7 -e "mod1@test.ru"
-cargo run -- -a update -i 0189a30a-60c7-7136-b98e-9c2d4f2734f1 -e "mod2@test.ru"
-cargo run -- -a update -i 0189a30a-60c7-7137-b1a3-8a6a3d9076fa -e "mod3@test.ru"
-cargo run -- -a update -i 0189a30a-60c7-7138-8a68-2d4c5b617a98 -e "mod4@test.ru"
-cargo run -- -a update -i 0189a30a-60c7-7139-b187-2e7e3b297efb -e "mod5@test.ru"
-
-cargo run -- -a get-all
-
-*/
-
-/*
-0189a30a-60c7-7135-b683-7d7f3783d4b7
-0189a30a-60c7-7136-b98e-9c2d4f2734f1
-0189a30a-60c7-7137-b1a3-8a6a3d9076fa
-0189a30a-60c7-7138-8a68-2d4c5b617a98
-0189a30a-60c7-7139-b187-2e7e3b297efb
-
-*/
-
 use tonic::transport::Channel;
 use uuid::Uuid;
-use user_service_rpc::rpc::{GetAllUsersRequest, GetUserRequest, PutUserRequest, UpdateUserRequest};
+use user_service_rpc::rpc::{GetAllUsersRequest, GetUserByIdRequest, GetUserIdByNicknameRequest, PutUserRequest, UpdateUserRequest};
 use user_service_rpc::rpc::user_service_client::UserServiceClient;
-
 use clap::{Parser, ValueEnum};
+
 #[derive(Debug, ValueEnum, Clone)]
 enum Actions {
-    Get,
+    GetDataById,
     Put,
     Update,
     GetAll,
+    GetUserIdByNickname,
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -73,13 +42,24 @@ async fn put_user_data(client: &mut UserServiceClient<Channel>, user_uuid: &Uuid
     Ok(())
 }
 
-async fn get_user_data(client: &mut UserServiceClient<Channel>, user_uuid: &Uuid) -> Result<(), Box<dyn std::error::Error>> {
-    let request = tonic::Request::new(GetUserRequest {
+async fn get_user_data_by_id(client: &mut UserServiceClient<Channel>, user_uuid: &Uuid) -> Result<(), Box<dyn std::error::Error>> {
+    let request = tonic::Request::new(GetUserByIdRequest {
         user_uuid: user_uuid.to_string(),
     });
 
-    let response = client.get_user_data(request).await?;
+    let response = client.get_user_data_by_id(request).await?;
     println!("GetUserData={:?}", response);
+
+    Ok(())
+}
+
+async fn get_user_id_by_nickname(client: &mut UserServiceClient<Channel>, user_name: String) -> Result<(), Box<dyn std::error::Error>> {
+    let request = tonic::Request::new(GetUserIdByNicknameRequest {
+        user_name
+    });
+
+    let response = client.get_user_id_by_nickname(request).await?;
+    println!("GetUserIdByNickname={:?}", response);
 
     Ok(())
 }
@@ -108,7 +88,6 @@ async fn get_all_users(client: &mut UserServiceClient<Channel>) -> Result<(), Bo
         println!("UUID: {}, Name: {}, Email: {}", user.user_uuid, user.user_name, user.user_email);
     }
 
-
     Ok(())
 }
 
@@ -121,7 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client = UserServiceClient::connect("http://127.0.0.1:8080").await?;
 
     match args.action {
-        Actions::Put | Actions::Get | Actions::Update => {
+        Actions::Put | Actions::GetDataById | Actions::Update => {
             let user_uuid_str = args.user_uuid.as_deref().ok_or("user_uuid is required for this action")?;
             let user_uuid = Uuid::parse_str(user_uuid_str)?;
 
@@ -129,8 +108,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Actions::Put => {
                     put_user_data(&mut client, &user_uuid, &args.user_name, &args.user_email).await?;
                 },
-                Actions::Get => {
-                    get_user_data(&mut client, &user_uuid).await?;
+                Actions::GetDataById => {
+                    get_user_data_by_id(&mut client, &user_uuid).await?;
                 },
                 Actions::Update => {
                     update_user_data(&mut client, &user_uuid, Some(&args.user_name), Some(&args.user_email)).await?;
@@ -140,6 +119,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         Actions::GetAll => {
             get_all_users(&mut client).await?;
+        },
+        Actions::GetUserIdByNickname => {
+            get_user_id_by_nickname(&mut client, args.user_name).await?;
         },
     }
 

@@ -7,16 +7,16 @@ use fern;
 use fern::colors::{Color, ColoredLevelConfig};
 use clap::Parser;
 
-#[derive(Parser,)]
+#[derive(Parser)]
 #[clap(author, version, about = "Типо сервер")]
 struct Args {
-    #[arg(short,long)]
+    #[arg(short,long, default_value = "8080")]
     port: usize
 }
 
 
 mod app;
-use app::services::UserServiceCore;
+use app::user_server_core::UserServiceCore;
 mod adapters;
 
 fn setup_logger() -> Result<(), fern::InitError> {
