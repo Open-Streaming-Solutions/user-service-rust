@@ -13,5 +13,5 @@ prost-types = { workspace = true}
 dotenv = { workspace = true}
 uuid = { workspace = true}
 tokio = { workspace = true}
-clap = { version = "4.5.11", features = ["derive"] }
-clap_derive = "4.5.11"
+clap = { workspace = true}
+clap_derive = { workspace = true}

@@ -8,17 +8,22 @@ edition = "2021"
 #GRPC
 user-service-rpc = { workspace = true}
 tonic = { workspace = true}
-#tonic-reflection = { workspace = true}
 prost = { workspace = true}
 prost-types = { workspace = true}
+
+#Logger
+log  = { workspace = true}
+fern = { version = "0.6.2", features = ["colored"] }
+
 dotenv = { workspace = true}
 uuid = { workspace = true}
+
+#async runtime
 tokio = { workspace = true}
-log  = { workspace = true}
+
 chrono = {workspace = true}
-#env_logger = { workspace = true}
-fern = { version = "0.6.1", features = ["colored"] }
+#argparser
+clap = { workspace = true}
+clap_derive = { workspace = true}
+
 dashmap = "6.0.1"
-humantime = "2.1.0"
-clap = { version = "4.5.11", features = ["derive"] }
-clap_derive = "4.5.11"
