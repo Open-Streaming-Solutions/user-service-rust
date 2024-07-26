@@ -168,6 +168,57 @@ mod user_service {
         assert_eq!(added_user.user_email, "new@example.com");
     }
 
+    #[tokio::test]
+    async fn test_put_user_data_invalid_uuid() {
+        let repo = Arc::new(InternalRepository::new());
+
+        let service = UserServiceCore {
+            repository: repo.clone(),
+        };
+
+        let invalid_uuid = "invalid-uuid";
+        let request = Request::new(PutUserRequest {
+            user_uuid: invalid_uuid.to_string(),
+            user_name: "New User".to_string(),
+            user_email: "new@example.com".to_string(),
+        });
+
+        let response = service.put_user_data(request).await;
+        assert!(response.is_err());
+        let error = response.unwrap_err();
+        assert_eq!(error.code(), tonic::Code::InvalidArgument);
+        assert_eq!(error.message(), "Invalid UUID");
+    }
+
+    #[tokio::test]
+    async fn test_put_user_data_duplicate_uuid() {
+        let repo = Arc::new(InternalRepository::new());
+
+        let service = UserServiceCore {
+            repository: repo.clone(),
+        };
+
+        let user_id = Uuid::now_v7();
+        let put_user_request = PutUserRequest {
+            user_uuid: user_id.to_string(),
+            user_name: "New User".to_string(),
+            user_email: "new@example.com".to_string(),
+        };
+        let request = Request::new(put_user_request.clone());
+
+        // Add user first time
+        service.put_user_data(request).await.unwrap();
+
+        // Create a new request with the same data
+        let duplicate_request = Request::new(put_user_request);
+
+        // Try adding the same user again
+        let response = service.put_user_data(duplicate_request).await;
+        assert!(response.is_err());
+        let error = response.unwrap_err();
+        assert_eq!(error.code(), tonic::Code::AlreadyExists);
+        assert_eq!(error.message(), "User with this UUID already exists");
+    }
 
     #[tokio::test]
     async fn test_get_user_data_success() {
