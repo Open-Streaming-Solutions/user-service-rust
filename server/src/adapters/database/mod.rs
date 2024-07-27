@@ -73,6 +73,7 @@ impl UserRepository for DbRepository {
             .expect("Error loading user")
     }
 
+    //Пока норм, но надо передумать.
     async fn get_user_id(&self, user_id: &Uuid) -> Option<Uuid> {
         self.get_user(user_id).await.map(|user| user.id)
     }
