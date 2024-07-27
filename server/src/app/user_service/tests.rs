@@ -10,141 +10,138 @@ use crate::adapters::UserRepository;
 use crate::app::user_service::core::UserServiceCore;
 
 #[tokio::test]
-    async fn put_user_data_success() {
-        let repo = Arc::new(InternalRepository::new());
+async fn internal_repo_put_user_data_success() {
+    let repo = Arc::new(InternalRepository::new());
 
-        let service = UserServiceCore {
-            repository: repo.clone(),
-        };
+    let service = UserServiceCore {
+        repository: repo.clone(),
+    };
 
-        let user_id = Uuid::now_v7();
-        let request = Request::new(PutUserRequest {
-            user_uuid: user_id.to_string(),
-            user_name: "New User".to_string(),
-            user_email: "new@example.com".to_string(),
-        });
+    let user_id = Uuid::now_v7();
+    let request = Request::new(PutUserRequest {
+        user_uuid: user_id.to_string(),
+        user_name: "New User".to_string(),
+        user_email: "new@example.com".to_string(),
+    });
 
-        let response = service.put_user_data(request).await.unwrap();
-        let response_data = response.into_inner();
+    let response = service.put_user_data(request).await.unwrap();
+    let response_data = response.into_inner();
 
-        assert_eq!(response_data.message, format!("User {} added successfully", user_id));
+    assert_eq!(response_data.message, format!("User {} added successfully", user_id));
 
-        let added_user = repo.get_user(&user_id).await.unwrap();
-        assert_eq!(added_user.user_name, "New User");
-        assert_eq!(added_user.user_email, "new@example.com");
-    }
+    let added_user = repo.get_user(&user_id).await.unwrap();
+    assert_eq!(added_user.user_name, "New User");
+    assert_eq!(added_user.user_email, "new@example.com");
+}
 
-    #[tokio::test]
-    async fn put_user_data_invalid_uuid() {
-        let repo = Arc::new(InternalRepository::new());
-
-        let service = UserServiceCore {
-            repository: repo.clone(),
-        };
-
-        let invalid_uuid = "invalid-uuid";
-        let request = Request::new(PutUserRequest {
-            user_uuid: invalid_uuid.to_string(),
-            user_name: "New User".to_string(),
-            user_email: "new@example.com".to_string(),
-        });
-
-        let response = service.put_user_data(request).await;
-        assert!(response.is_err());
-        let error = response.unwrap_err();
-        assert_eq!(error.code(), tonic::Code::InvalidArgument);
-        assert_eq!(error.message(), "Invalid UUID");
-    }
-
-    #[tokio::test]
-    async fn put_user_data_duplicate_uuid() {
-        let repo = Arc::new(InternalRepository::new());
-
-        let service = UserServiceCore {
-            repository: repo.clone(),
-        };
-
-        let user_id = Uuid::now_v7();
-        let put_user_request = PutUserRequest {
-            user_uuid: user_id.to_string(),
-            user_name: "New User".to_string(),
-            user_email: "new@example.com".to_string(),
-        };
-        let request = Request::new(put_user_request.clone());
-
-        // Add user first time
-        service.put_user_data(request).await.unwrap();
-
-        // Create a new request with the same data
-        let duplicate_request = Request::new(put_user_request);
-
-        // Try adding the same user again
-        let response = service.put_user_data(duplicate_request).await;
-        assert!(response.is_err());
-        let error = response.unwrap_err();
-        assert_eq!(error.code(), tonic::Code::AlreadyExists);
-        assert_eq!(error.message(), "User with this UUID already exists");
-    }
-
-    #[tokio::test]
-    async fn get_user_data_success() {
-        let repo = Arc::new(InternalRepository::new());
-        let user_id = Uuid::now_v7();
-        let user = User {
-            id: user_id,
-            user_name: "Test User".to_string(),
-            user_email: "test@example.com".to_string(),
-        };
-        repo.add_user(user).await;
-
-        let service = UserServiceCore {
-            repository: repo.clone(),
-        };
-
-        let request = Request::new(GetUserByIdRequest {
-            user_uuid: user_id.to_string(),
-        });
-
-        let response = service.get_user_data_by_id(request).await.unwrap();
-        let response_data = response.into_inner();
-
-        assert_eq!(response_data.user_name, "Test User");
-        assert_eq!(response_data.user_email, "test@example.com");
-    }
-
-
-    #[tokio::test]
-    async fn update_user_data_success() {
-        let repo = Arc::new(InternalRepository::new());
-        let user_id = Uuid::now_v7();
-        let user = User {
-            id: user_id,
-            user_name: "Existing User".to_string(),
-            user_email: "existing@example.com".to_string(),
-        };
-        repo.add_user(user).await;
-
-        let service = UserServiceCore {
-            repository: repo.clone(),
-        };
-
-        let request = Request::new(UpdateUserRequest {
-            user_uuid: user_id.to_string(),
-            user_name: "Updated User".to_string(),
-            user_email: "updated@example.com".to_string(),
-        });
-
-        let response = service.update_user_data(request).await.unwrap();
-        let response_data = response.into_inner();
-
-        assert_eq!(response_data.message, format!("User {} updated successfully", user_id));
-
-        let updated_user = repo.get_user(&user_id).await.unwrap();
-        assert_eq!(updated_user.user_name, "Updated User");
-        assert_eq!(updated_user.user_email, "updated@example.com");
-    }
 #[tokio::test]
-async fn get_user_id_by_nickname() {
+async fn internal_repo_put_user_data_invalid_uuid() {
+    let repo = Arc::new(InternalRepository::new());
+
+    let service = UserServiceCore {
+        repository: repo.clone(),
+    };
+
+    let invalid_uuid = "invalid-uuid";
+    let request = Request::new(PutUserRequest {
+        user_uuid: invalid_uuid.to_string(),
+        user_name: "New User".to_string(),
+        user_email: "new@example.com".to_string(),
+    });
+
+    let response = service.put_user_data(request).await;
+    assert!(response.is_err());
+    let error = response.unwrap_err();
+    assert_eq!(error.code(), tonic::Code::InvalidArgument);
+    assert_eq!(error.message(), "Invalid UUID");
+}
+
+#[tokio::test]
+async fn internal_repo_put_user_data_duplicate_uuid() {
+    let repo = Arc::new(InternalRepository::new());
+
+    let service = UserServiceCore {
+        repository: repo.clone(),
+    };
+
+    let user_id = Uuid::now_v7();
+    let put_user_request = PutUserRequest {
+        user_uuid: user_id.to_string(),
+        user_name: "New User".to_string(),
+        user_email: "new@example.com".to_string(),
+    };
+    let request = Request::new(put_user_request.clone());
+
+    service.put_user_data(request).await.unwrap();
+
+    let duplicate_request = Request::new(put_user_request);
+
+    let response = service.put_user_data(duplicate_request).await;
+    assert!(response.is_err());
+    let error = response.unwrap_err();
+    assert_eq!(error.code(), tonic::Code::AlreadyExists);
+    assert_eq!(error.message(), "User with this UUID already exists");
+}
+
+#[tokio::test]
+async fn internal_repo_get_user_data_success() {
+    let repo = Arc::new(InternalRepository::new());
+    let user_id = Uuid::now_v7();
+    let user = User {
+        id: user_id,
+        user_name: "Test User".to_string(),
+        user_email: "test@example.com".to_string(),
+    };
+    repo.add_user(user).await;
+
+    let service = UserServiceCore {
+        repository: repo.clone(),
+    };
+
+    let request = Request::new(GetUserByIdRequest {
+        user_uuid: user_id.to_string(),
+    });
+
+    let response = service.get_user_data_by_id(request).await.unwrap();
+    let response_data = response.into_inner();
+
+    assert_eq!(response_data.user_name, "Test User");
+    assert_eq!(response_data.user_email, "test@example.com");
+}
+
+#[tokio::test]
+async fn internal_repo_update_user_data_success() {
+    let repo = Arc::new(InternalRepository::new());
+    let user_id = Uuid::now_v7();
+    let user = User {
+        id: user_id,
+        user_name: "Existing User".to_string(),
+        user_email: "existing@example.com".to_string(),
+    };
+    repo.add_user(user).await;
+
+    let service = UserServiceCore {
+        repository: repo.clone(),
+    };
+
+    let request = Request::new(UpdateUserRequest {
+        user_uuid: user_id.to_string(),
+        user_name: "Updated User".to_string(),
+        user_email: "updated@example.com".to_string(),
+    });
+
+    let response = service.update_user_data(request).await.unwrap();
+    let response_data = response.into_inner();
+
+    assert_eq!(response_data.message, format!("User {} updated successfully", user_id));
+
+    let updated_user = repo.get_user(&user_id).await.unwrap();
+    assert_eq!(updated_user.user_name, "Updated User");
+    assert_eq!(updated_user.user_email, "updated@example.com");
+}
+
+#[tokio::test]
+async fn internal_repo_get_user_id_by_nickname() {
     let repository = Arc::new(InternalRepository::new());
     let service = UserServiceCore {
         repository: repository.clone(),
