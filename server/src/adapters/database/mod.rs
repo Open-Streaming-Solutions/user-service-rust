@@ -1,3 +1,4 @@
+mod schema;
 
 use uuid::Uuid;
 use crate::app::structs::User;
@@ -25,9 +26,7 @@ impl DbRepository {
         unimplemented!()
     }
 }
-/*
-Для DbRepository Можно не использовать static, так как Pool з
-*/
+
 #[async_trait]
 impl UserRepository for DbRepository {
     async fn add_user(&self, _user: User) {

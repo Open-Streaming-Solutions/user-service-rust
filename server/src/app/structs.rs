@@ -1,6 +1,7 @@
+use diesel::Queryable;
 use uuid::Uuid;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,Queryable)]
 pub struct User {
     pub id: Uuid,
     pub user_name: String,

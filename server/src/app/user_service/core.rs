@@ -151,3 +151,11 @@ impl Default for UserServiceCore<InternalRepository> {
         }
     }
 }
+
+impl Default for UserServiceCore<DbRepository> {
+    fn default() -> Self {
+        UserServiceCore {
+            repository: Arc::new(InternalRepository::new()),
+        }
+    }
+}
