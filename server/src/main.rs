@@ -13,7 +13,7 @@ use app::user_service::core::UserServiceCore;
 use crate::adapters::database::DbRepository;
 
 mod adapters;
-
+mod tests;
 
 #[derive(Parser)]
 #[clap(author, version, about = "Типо сервер")]
