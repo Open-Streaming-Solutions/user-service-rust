@@ -16,7 +16,7 @@ struct Args {
 
 
 mod app;
-use app::user_server_core::UserServiceCore;
+use app::user_service::core::UserServiceCore;
 mod adapters;
 
 fn setup_logger() -> Result<(), fern::InitError> {
