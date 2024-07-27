@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use chrono::Local;
 use user_service_rpc::rpc::user_service_server::UserServiceServer;
 use dotenv::dotenv;
@@ -7,6 +8,13 @@ use fern;
 use fern::colors::{Color, ColoredLevelConfig};
 use clap::Parser;
 
+mod app;
+use app::user_service::core::UserServiceCore;
+use crate::adapters::database::DbRepository;
+
+mod adapters;
+
+
 #[derive(Parser)]
 #[clap(author, version, about = "Типо сервер")]
 struct Args {
@@ -14,10 +22,6 @@ struct Args {
     port: usize
 }
 
-
-mod app;
-use app::user_service::core::UserServiceCore;
-mod adapters;
 
 fn setup_logger() -> Result<(), fern::InitError> {
     let colors = ColoredLevelConfig::new()
@@ -52,7 +56,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 
     let addr = format!("127.0.0.1:{}",args.port);
-    let user_service = UserServiceCore::default();
+
+    let db_repository = DbRepository::new();
+    let user_service = UserServiceCore {
+        repository: Arc::new(db_repository),
+    };
 
     info!("UserServiceServer listening on {}", addr);
 
