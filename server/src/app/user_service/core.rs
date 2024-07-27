@@ -8,7 +8,7 @@ use crate::adapters::repo::InternalRepository;
 use crate::app::structs::User;
 use async_trait::async_trait;
 use crate::adapters::UserRepository;
-
+use crate::adapters::database::DbRepository;
 /*
 Читается вот так:
 Структура, С любым типом R Который должен реализовывать трейт UserRepository
@@ -121,7 +121,7 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
             user.user_email = req.user_email;
         }
 
-        self.repository.add_user(user).await;
+        self.repository.update_user_by_id(&user_id, user).await;
         info!("User {} updated successfully", req.user_uuid);
 
         let reply = UpdateUserResponse {
@@ -155,7 +155,7 @@ impl Default for UserServiceCore<InternalRepository> {
 impl Default for UserServiceCore<DbRepository> {
     fn default() -> Self {
         UserServiceCore {
-            repository: Arc::new(InternalRepository::new()),
+            repository: Arc::new(DbRepository::new()),
         }
     }
 }
