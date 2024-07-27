@@ -1,4 +1,4 @@
-use crate::UserServiceCore;
+use core::*;
 use std::sync::Arc;
 use tonic::Request;
 use uuid::Uuid;
@@ -6,7 +6,10 @@ use user_service_rpc::rpc::{GetUserByIdRequest, GetUserIdByNicknameRequest, PutU
 use user_service_rpc::rpc::user_service_server::UserService;
 use crate::app::structs::User;
 use crate::adapters::repo::InternalRepository;
-    #[tokio::test]
+use crate::adapters::UserRepository;
+use crate::app::user_service::core::UserServiceCore;
+
+#[tokio::test]
     async fn put_user_data_success() {
         let repo = Arc::new(InternalRepository::new());
 
@@ -26,7 +29,7 @@ use crate::adapters::repo::InternalRepository;
 
         assert_eq!(response_data.message, format!("User {} added successfully", user_id));
 
-        let added_user = repo.get_user(&user_id).unwrap();
+        let added_user = repo.get_user(&user_id).await.unwrap();
         assert_eq!(added_user.user_name, "New User");
         assert_eq!(added_user.user_email, "new@example.com");
     }
@@ -92,7 +95,7 @@ use crate::adapters::repo::InternalRepository;
             user_name: "Test User".to_string(),
             user_email: "test@example.com".to_string(),
         };
-        repo.add_user(user);
+        repo.add_user(user).await;
 
         let service = UserServiceCore {
             repository: repo.clone(),
@@ -119,7 +122,7 @@ use crate::adapters::repo::InternalRepository;
             user_name: "Existing User".to_string(),
             user_email: "existing@example.com".to_string(),
         };
-        repo.add_user(user);
+        repo.add_user(user).await;
 
         let service = UserServiceCore {
             repository: repo.clone(),
@@ -136,7 +139,7 @@ use crate::adapters::repo::InternalRepository;
 
         assert_eq!(response_data.message, format!("User {} updated successfully", user_id));
 
-        let updated_user = repo.get_user(&user_id).unwrap();
+        let updated_user = repo.get_user(&user_id).await.unwrap();
         assert_eq!(updated_user.user_name, "Updated User");
         assert_eq!(updated_user.user_email, "updated@example.com");
     }
@@ -153,7 +156,7 @@ async fn get_user_id_by_nickname() {
         user_email: "test_user@example.com".to_string(),
     };
 
-    repository.add_user(user.clone());
+    repository.add_user(user.clone()).await;
 
     let request = Request::new(GetUserIdByNicknameRequest {
         user_name: "test_user".to_string(),
