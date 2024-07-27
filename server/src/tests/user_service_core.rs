@@ -1,12 +1,16 @@
 use core::*;
 use std::sync::Arc;
+
+use pretty_assertions::assert_eq;
 use tonic::Request;
 use uuid::Uuid;
+
 use user_service_rpc::rpc::{GetUserByIdRequest, GetUserIdByNicknameRequest, PutUserRequest, UpdateUserRequest};
 use user_service_rpc::rpc::user_service_server::UserService;
-use crate::app::structs::User;
+
 use crate::adapters::repo::InternalRepository;
 use crate::adapters::UserRepository;
+use crate::app::structs::User;
 use crate::app::user_service::core::UserServiceCore;
 
 #[tokio::test]
