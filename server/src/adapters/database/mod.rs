@@ -1,20 +1,25 @@
 pub mod schema;
-
 use uuid::Uuid;
 use crate::app::structs::User;
 use crate::adapters::UserRepository;
 use async_trait::async_trait;
 use diesel::{OptionalExtension, PgConnection, QueryDsl, r2d2, RunQueryDsl, ExpressionMethods};
 use diesel::r2d2::{ConnectionManager, PooledConnection};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use self::schema::users;
+use self::schema::users::dsl::*;
+
+
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 /*
 Читается так:
-Определение алиаса Pool для библиотечного типа Pool, Который содершит структуру Для подключения к БД postgresql
+Определение алиаса Pool для библиотечного типа Pool, Который принимает структуру Для подключения к БД postgresql
 */
-type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
+pub(crate) type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 pub struct DbRepository {
-    pool: Pool,
+    pub(crate) pool: Pool,
 }
 
 impl DbRepository {
@@ -30,14 +35,18 @@ impl DbRepository {
     fn get_conn(&self) -> PooledConnection<ConnectionManager<PgConnection>> {
         self.pool.get().expect("Failed to get a connection")
     }
+
+    pub fn manage_migration(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+        let conn = &mut self.get_conn();
+        conn.run_pending_migrations(MIGRATIONS)?;
+        Ok(())
+    }
 }
 
 
 #[async_trait]
 impl UserRepository for DbRepository {
     async fn add_user(&self, user: User) {
-        use self::schema::users;
-
         let conn = &mut self.get_conn();
         let new_user = User {
             id: user.id,
@@ -51,16 +60,12 @@ impl UserRepository for DbRepository {
     }
 
     async fn get_all_users(&self) -> Vec<User> {
-        use self::schema::users::dsl::*;
-
         let conn = &mut self.get_conn();
         users.load::<User>(conn)
             .expect("Error loading users")
     }
 
     async fn get_user(&self, user_id: &Uuid) -> Option<User> {
-        use self::schema::users::dsl::*;
-
         let conn = &mut self.get_conn();
         users.filter(id.eq(user_id))
             .first::<User>(conn)
@@ -73,7 +78,6 @@ impl UserRepository for DbRepository {
     }
 
     async fn get_user_id_by_nickname(&self, nickname: &str) -> Option<Uuid> {
-        use self::schema::users::dsl::*;
 
         let conn = &mut self.get_conn();
         users.filter(user_name.eq(nickname))
@@ -84,7 +88,6 @@ impl UserRepository for DbRepository {
     }
 
     async fn update_user_by_id(&self, user_id: &Uuid, updated_user: User) -> Option<()> {
-        use self::schema::users::dsl::*;
 
         let conn = &mut self.get_conn();
         let target = users.filter(id.eq(user_id));
@@ -104,7 +107,6 @@ impl UserRepository for DbRepository {
     }
 
     async fn update_user_by_nickname(&self, nick_name: &str, updated_user: User) -> Option<()> {
-        use self::schema::users::dsl::*;
 
         let conn = &mut self.get_conn();
         let target = users.filter(user_name.eq(nick_name));
