@@ -1,18 +1,16 @@
 use async_trait::async_trait;
-use diesel::{OptionalExtension, PgConnection, QueryDsl, r2d2, RunQueryDsl, ExpressionMethods};
 use diesel::r2d2::{ConnectionManager, PooledConnection};
+use diesel::{r2d2, ExpressionMethods, OptionalExtension, PgConnection, QueryDsl, RunQueryDsl};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use log::info;
 use uuid::Uuid;
 
-
 pub mod schema;
-use crate::app::structs::User;
 use crate::adapters::UserRepository;
+use crate::app::structs::User;
 
 use self::schema::users;
 use self::schema::users::dsl::*;
-
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
@@ -47,7 +45,6 @@ impl DbRepository {
     }
 }
 
-
 #[async_trait]
 impl UserRepository for DbRepository {
     async fn add_user(&self, user: User) {
@@ -65,13 +62,13 @@ impl UserRepository for DbRepository {
 
     async fn get_all_users(&self) -> Vec<User> {
         let conn = &mut self.get_conn();
-        users.load::<User>(conn)
-            .expect("Error loading users")
+        users.load::<User>(conn).expect("Error loading users")
     }
 
     async fn get_user(&self, user_id: &Uuid) -> Option<User> {
         let conn = &mut self.get_conn();
-        users.filter(id.eq(user_id))
+        users
+            .filter(id.eq(user_id))
             .first::<User>(conn)
             .optional()
             .expect("Error loading user")
@@ -83,9 +80,9 @@ impl UserRepository for DbRepository {
     }
 
     async fn get_user_id_by_nickname(&self, nickname: &str) -> Option<Uuid> {
-
         let conn = &mut self.get_conn();
-        users.filter(user_name.eq(nickname))
+        users
+            .filter(user_name.eq(nickname))
             .select(id)
             .first::<Uuid>(conn)
             .optional()
@@ -93,7 +90,6 @@ impl UserRepository for DbRepository {
     }
 
     async fn update_user_by_id(&self, user_id: &Uuid, updated_user: User) -> Option<()> {
-
         let conn = &mut self.get_conn();
         let target = users.filter(id.eq(user_id));
         let updated_rows = diesel::update(target)
@@ -112,7 +108,6 @@ impl UserRepository for DbRepository {
     }
 
     async fn update_user_by_nickname(&self, nick_name: &str, updated_user: User) -> Option<()> {
-
         let conn = &mut self.get_conn();
         let target = users.filter(user_name.eq(nick_name));
         let updated_rows = diesel::update(target)

@@ -1,13 +1,17 @@
-use std::sync::Arc;
-use tonic::{Request, Response, Status};
-use uuid::Uuid;
-use log::{error, info};
-use user_service_rpc::rpc::{PutUserRequest, PutUserResponse, GetUserByIdRequest, UpdateUserRequest, UpdateUserResponse, GetAllUsersRequest, GetAllUsersResponse, GetUserByIdResponse, GetUserIdByNicknameRequest, GetUserIdByNicknameResponse};
-use user_service_rpc::rpc::user_service_server::UserService;
 use crate::adapters::repo::InternalRepository;
+use crate::adapters::UserRepository;
 use crate::app::structs::User;
 use async_trait::async_trait;
-use crate::adapters::UserRepository;
+use log::{error, info};
+use std::sync::Arc;
+use tonic::{Request, Response, Status};
+use user_service_rpc::rpc::user_service_server::UserService;
+use user_service_rpc::rpc::{
+    GetAllUsersRequest, GetAllUsersResponse, GetUserByIdRequest, GetUserByIdResponse,
+    GetUserIdByNicknameRequest, GetUserIdByNicknameResponse, PutUserRequest, PutUserResponse,
+    UpdateUserRequest, UpdateUserResponse,
+};
+use uuid::Uuid;
 
 /*
 Читается вот так:
@@ -29,8 +33,13 @@ pub struct UserServiceCore<R: UserRepository> {
 */
 #[async_trait]
 impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
-    async fn get_user_data_by_id(&self, request: Request<GetUserByIdRequest>) -> Result<Response<GetUserByIdResponse>, Status> {
-        info!("Received GetUserData request for UUID: {}", request.get_ref().user_uuid);
+    async fn get_user_data_by_id(
+        &self, request: Request<GetUserByIdRequest>,
+    ) -> Result<Response<GetUserByIdResponse>, Status> {
+        info!(
+            "Received GetUserData request for UUID: {}",
+            request.get_ref().user_uuid
+        );
         let user_uuid = request.into_inner().user_uuid;
         let user_id = Uuid::parse_str(&user_uuid).map_err(|_| {
             error!("Invalid UUID: {}", user_uuid);
@@ -48,9 +57,13 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
             Err(Status::not_found("User not found"))
         }
     }
-    async fn get_user_id_by_nickname(&self, request: Request<GetUserIdByNicknameRequest>)
-                                     -> Result<Response<GetUserIdByNicknameResponse>, Status> {
-        info!("Received GetUserIdByNickname request for NickName: \"{}\"", request.get_ref().user_name);
+    async fn get_user_id_by_nickname(
+        &self, request: Request<GetUserIdByNicknameRequest>,
+    ) -> Result<Response<GetUserIdByNicknameResponse>, Status> {
+        info!(
+            "Received GetUserIdByNickname request for NickName: \"{}\"",
+            request.get_ref().user_name
+        );
         let user_name = request.into_inner().user_name;
 
         if user_name.is_empty() {
@@ -64,7 +77,7 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
                     user_uuid: user_id.to_string(),
                 };
                 Ok(Response::new(response))
-            },
+            }
             None => {
                 error!("User with NickName \"{}\" not found", user_name);
                 Err(Status::not_found("User not found"))
@@ -72,8 +85,13 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
         }
     }
 
-    async fn put_user_data(&self, request: Request<PutUserRequest>) -> Result<Response<PutUserResponse>, Status> {
-        info!("Received PutUserData request for UUID: {}", request.get_ref().user_uuid);
+    async fn put_user_data(
+        &self, request: Request<PutUserRequest>,
+    ) -> Result<Response<PutUserResponse>, Status> {
+        info!(
+            "Received PutUserData request for UUID: {}",
+            request.get_ref().user_uuid
+        );
         let req = request.into_inner();
         let user_id = Uuid::parse_str(&req.user_uuid).map_err(|_| {
             error!("Invalid UUID: {}", req.user_uuid);
@@ -101,8 +119,13 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
         Ok(Response::new(reply))
     }
 
-    async fn update_user_data(&self, request: Request<UpdateUserRequest>) -> Result<Response<UpdateUserResponse>, Status> {
-        info!("Received UpdateUserData request for UUID: {}", request.get_ref().user_uuid);
+    async fn update_user_data(
+        &self, request: Request<UpdateUserRequest>,
+    ) -> Result<Response<UpdateUserResponse>, Status> {
+        info!(
+            "Received UpdateUserData request for UUID: {}",
+            request.get_ref().user_uuid
+        );
         let req = request.into_inner();
         let user_id = Uuid::parse_str(&req.user_uuid).map_err(|_| {
             error!("Invalid UUID: {}", req.user_uuid);
@@ -130,16 +153,23 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
         Ok(Response::new(reply))
     }
 
-    async fn get_all_users(&self, _request: Request<GetAllUsersRequest>) -> Result<Response<GetAllUsersResponse>, Status> {
+    async fn get_all_users(
+        &self, _request: Request<GetAllUsersRequest>,
+    ) -> Result<Response<GetAllUsersResponse>, Status> {
         info!("Received GetAllUsers request");
         let users = self.repository.get_all_users().await;
-        let response_users: Vec<user_service_rpc::rpc::User> = users.into_iter().map(|user| user_service_rpc::rpc::User {
-            user_uuid: user.id.to_string(),
-            user_name: user.user_name,
-            user_email: user.user_email,
-        }).collect();
+        let response_users: Vec<user_service_rpc::rpc::User> = users
+            .into_iter()
+            .map(|user| user_service_rpc::rpc::User {
+                user_uuid: user.id.to_string(),
+                user_name: user.user_name,
+                user_email: user.user_email,
+            })
+            .collect();
 
-        let response = GetAllUsersResponse { users: response_users };
+        let response = GetAllUsersResponse {
+            users: response_users,
+        };
         Ok(Response::new(response))
     }
 }

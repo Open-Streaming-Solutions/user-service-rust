@@ -1,5 +1,2 @@
 #[target.x86_64-pc-windows-msvc]
 #rustflags = ["-L", "C:/Program Files/PostgreSQL/16/lib"]
-
-[rustfmt]
-config-path = ".cargo/rustfmt.toml"

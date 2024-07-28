@@ -1,17 +1,16 @@
+use chrono::Local;
+use clap::Parser;
+use dotenv::dotenv;
+use fern::colors::{Color, ColoredLevelConfig};
+use log::info;
 use std::env;
 use std::sync::Arc;
-use chrono::Local;
-use user_service_rpc::rpc::user_service_server::UserServiceServer;
-use dotenv::dotenv;
 use tonic::transport::Server;
-use log::{info};
-use fern;
-use fern::colors::{Color, ColoredLevelConfig};
-use clap::Parser;
+use user_service_rpc::rpc::user_service_server::UserServiceServer;
 
 mod app;
-use app::user_service::core::UserServiceCore;
 use crate::adapters::database::DbRepository;
+use app::user_service::core::UserServiceCore;
 
 mod adapters;
 mod tests;
@@ -19,10 +18,9 @@ mod tests;
 #[derive(Parser)]
 #[clap(author, version, about = "Типо сервер")]
 struct Args {
-    #[arg(short,long, default_value = "8080")]
-    port: usize
+    #[arg(short, long, default_value = "8080")]
+    port: usize,
 }
-
 
 fn setup_logger() -> Result<(), fern::InitError> {
     let colors = ColoredLevelConfig::new()
@@ -56,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Initializing the UserServiceServer...");
 
     //Переделать под хостнейм
-    let addr = format!("0.0.0.0:{}",args.port);
+    let addr = format!("0.0.0.0:{}", args.port);
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let db_repository = DbRepository::new(database_url);
     DbRepository::manage_migration(&db_repository).expect("Pizda");

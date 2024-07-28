@@ -1,9 +1,9 @@
+use crate::adapters::UserRepository;
+use crate::app::structs::User;
+use async_trait::async_trait;
 use dashmap::DashMap;
 use std::sync::Arc;
 use uuid::Uuid;
-use crate::app::structs::User;
-use crate::adapters::UserRepository;
-use async_trait::async_trait;
 
 pub struct InternalRepository {
     storage: Arc<DashMap<Uuid, User>>,
@@ -36,7 +36,8 @@ impl UserRepository for InternalRepository {
     }
 
     async fn get_user_id_by_nickname(&self, user_name: &str) -> Option<Uuid> {
-        self.storage.iter()
+        self.storage
+            .iter()
             .find(|kv| kv.value().user_name == user_name)
             .map(|kv| *kv.key())
     }

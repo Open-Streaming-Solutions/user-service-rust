@@ -1,15 +1,15 @@
-use std::env;
+use crate::adapters::database::schema::users::dsl::users;
+use crate::adapters::database::{DbRepository, Pool};
+use crate::adapters::UserRepository;
+use crate::app::structs::User;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
 use dotenv::dotenv;
-use pretty_assertions::{assert_eq};
+use pretty_assertions::assert_eq;
+use serial_test::serial;
+use std::env;
 use tokio;
 use uuid::Uuid;
-use serial_test::serial;
-use crate::adapters::database::{DbRepository, Pool};
-use crate::adapters::database::schema::users::dsl::users;
-use crate::adapters::UserRepository;
-use crate::app::structs::User;
 
 fn setup_test_db() -> r2d2::Pool<ConnectionManager<PgConnection>> {
     dotenv().ok();
@@ -17,14 +17,14 @@ fn setup_test_db() -> r2d2::Pool<ConnectionManager<PgConnection>> {
     let database_url = env::var("TEST_DATABASE_URL").expect("DATABASE_URL must be set");
     let db_repo = DbRepository::new(database_url);
 
-    db_repo.manage_migration().expect("Failed to run migrations");
+    db_repo
+        .manage_migration()
+        .expect("Failed to run migrations");
 
     db_repo.pool
 }
 
-
 fn clear_test_db(pool: &Pool) {
-
     let conn = &mut pool.get().expect("Failed to get a connection");
     diesel::delete(users)
         .execute(conn)
@@ -50,7 +50,7 @@ async fn add_user() {
     let user = User {
         id: Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap(),
         user_name: "testuser".to_string(),
-        user_email: "testuser@test.com".to_string()
+        user_email: "testuser@test.com".to_string(),
     };
     repo.add_user(user.clone()).await;
 
@@ -67,7 +67,11 @@ async fn get_user_data_by_id() {
     clear_test_db(&pool);
 
     let user_id = Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
-    let user = User { id: user_id, user_name: "testuser".to_string(), user_email: "testuser@test.com".to_string() };
+    let user = User {
+        id: user_id,
+        user_name: "testuser".to_string(),
+        user_email: "testuser@test.com".to_string(),
+    };
     repo.add_user(user.clone()).await;
 
     let fetched_user = repo.get_user(&user_id).await;
@@ -83,7 +87,11 @@ async fn get_user_id() {
     clear_test_db(&pool);
 
     let user_id = Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
-    let user = User { id: user_id, user_name: "testuser".to_string(), user_email: "testuser@test.com".to_string() };
+    let user = User {
+        id: user_id,
+        user_name: "testuser".to_string(),
+        user_email: "testuser@test.com".to_string(),
+    };
     repo.add_user(user.clone()).await;
 
     let fetched_user_id = repo.get_user_id(&user_id).await;
@@ -99,7 +107,11 @@ async fn get_user_id_by_nickname() {
     clear_test_db(&pool);
 
     let user_id = Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
-    let user = User { id: user_id, user_name: "testuser".to_string(), user_email: "testuser@test.com".to_string() };
+    let user = User {
+        id: user_id,
+        user_name: "testuser".to_string(),
+        user_email: "testuser@test.com".to_string(),
+    };
     repo.add_user(user.clone()).await;
 
     let fetched_user_id = repo.get_user_id_by_nickname("testuser").await;
@@ -115,10 +127,18 @@ async fn update_user_by_id() {
     clear_test_db(&pool);
 
     let user_id = Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
-    let user = User { id: user_id, user_name: "testuser".to_string(), user_email: "testuser@test.com".to_string() };
+    let user = User {
+        id: user_id,
+        user_name: "testuser".to_string(),
+        user_email: "testuser@test.com".to_string(),
+    };
     repo.add_user(user.clone()).await;
 
-    let updated_user = User { id: user_id, user_name: "updateduser".to_string(), user_email: "updateduser@test.com".to_string() };
+    let updated_user = User {
+        id: user_id,
+        user_name: "updateduser".to_string(),
+        user_email: "updateduser@test.com".to_string(),
+    };
     let result = repo.update_user_by_id(&user_id, updated_user.clone()).await;
     assert!(result.is_some());
 
@@ -135,11 +155,21 @@ async fn update_user_by_nickname() {
     clear_test_db(&pool);
 
     let user_id = Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
-    let user = User { id: user_id, user_name: "testuser".to_string(), user_email: "testuser@test.com".to_string() };
+    let user = User {
+        id: user_id,
+        user_name: "testuser".to_string(),
+        user_email: "testuser@test.com".to_string(),
+    };
     repo.add_user(user.clone()).await;
 
-    let updated_user = User { id: user_id, user_name: "updateduser".to_string(), user_email: "updateduser@test.com".to_string() };
-    let result = repo.update_user_by_nickname("testuser", updated_user.clone()).await;
+    let updated_user = User {
+        id: user_id,
+        user_name: "updateduser".to_string(),
+        user_email: "updateduser@test.com".to_string(),
+    };
+    let result = repo
+        .update_user_by_nickname("testuser", updated_user.clone())
+        .await;
     assert!(result.is_some());
 
     let fetched_user = repo.get_user(&user_id).await;

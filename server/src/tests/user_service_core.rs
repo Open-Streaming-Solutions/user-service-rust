@@ -5,8 +5,10 @@ use pretty_assertions::assert_eq;
 use tonic::Request;
 use uuid::Uuid;
 
-use user_service_rpc::rpc::{GetUserByIdRequest, GetUserIdByNicknameRequest, PutUserRequest, UpdateUserRequest};
 use user_service_rpc::rpc::user_service_server::UserService;
+use user_service_rpc::rpc::{
+    GetUserByIdRequest, GetUserIdByNicknameRequest, PutUserRequest, UpdateUserRequest,
+};
 
 use crate::adapters::repo::InternalRepository;
 use crate::adapters::UserRepository;
@@ -31,7 +33,10 @@ async fn internal_repo_put_user_data_success() {
     let response = service.put_user_data(request).await.unwrap();
     let response_data = response.into_inner();
 
-    assert_eq!(response_data.message, format!("User {} added successfully", user_id));
+    assert_eq!(
+        response_data.message,
+        format!("User {} added successfully", user_id)
+    );
 
     let added_user = repo.get_user(&user_id).await.unwrap();
     assert_eq!(added_user.user_name, "New User");
@@ -137,7 +142,10 @@ async fn internal_repo_update_user_data_success() {
     let response = service.update_user_data(request).await.unwrap();
     let response_data = response.into_inner();
 
-    assert_eq!(response_data.message, format!("User {} updated successfully", user_id));
+    assert_eq!(
+        response_data.message,
+        format!("User {} updated successfully", user_id)
+    );
 
     let updated_user = repo.get_user(&user_id).await.unwrap();
     assert_eq!(updated_user.user_name, "Updated User");
@@ -175,5 +183,9 @@ async fn internal_repo_get_user_id_by_nickname() {
     let empty_response = service.get_user_id_by_nickname(empty_request).await;
     assert!(empty_response.is_err(), "Expected error response");
     let status = empty_response.err().unwrap();
-    assert_eq!(status.code(), tonic::Code::InvalidArgument, "Expected InvalidArgument status");
+    assert_eq!(
+        status.code(),
+        tonic::Code::InvalidArgument,
+        "Expected InvalidArgument status"
+    );
 }
