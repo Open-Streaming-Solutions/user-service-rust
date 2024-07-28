@@ -1,3 +1,4 @@
+use std::env;
 use std::sync::Arc;
 use chrono::Local;
 use user_service_rpc::rpc::user_service_server::UserServiceServer;
@@ -54,10 +55,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Initializing the UserServiceServer...");
 
-
-    let addr = format!("127.0.0.1:{}",args.port);
-
-    let db_repository = DbRepository::new();
+    //Переделать под хостнейм
+    let addr = format!("0.0.0.0:{}",args.port);
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let db_repository = DbRepository::new(database_url);
+    DbRepository::manage_migration(&db_repository).expect("Pizda");
     let user_service = UserServiceCore {
         repository: Arc::new(db_repository),
     };

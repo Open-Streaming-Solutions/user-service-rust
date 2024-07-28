@@ -1,31 +1,27 @@
+use std::env;
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
-use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use dotenv::dotenv;
 use pretty_assertions::{assert_eq};
 use tokio;
 use uuid::Uuid;
 use serial_test::serial;
-
 use crate::adapters::database::{DbRepository, Pool};
 use crate::adapters::database::schema::users::dsl::users;
 use crate::adapters::UserRepository;
 use crate::app::structs::User;
 
-const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
+fn setup_test_db() -> r2d2::Pool<ConnectionManager<PgConnection>> {
+    dotenv().ok();
 
-fn setup_test_db() -> Pool {
-    let database_url = "postgres://postgres:Qwe12345@localhost/user-service-test";
-    let manager = ConnectionManager::<PgConnection>::new(database_url);
-    let pool = r2d2::Pool::builder()
-        .build(manager)
-        .expect("Failed to create pool.");
+    let database_url = env::var("TEST_DATABASE_URL").expect("DATABASE_URL must be set");
+    let db_repo = DbRepository::new(database_url);
 
-    // Выполнение миграций
-    let conn = &mut pool.get().expect("Failed to get a connection");
-    conn.run_pending_migrations(MIGRATIONS).expect("Failed to run migrations");
+    db_repo.manage_migration().expect("Failed to run migrations");
 
-    pool
+    db_repo.pool
 }
+
 
 fn clear_test_db(pool: &Pool) {
 
