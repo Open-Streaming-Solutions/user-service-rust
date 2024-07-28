@@ -1,16 +1,20 @@
-pub mod schema;
-use uuid::Uuid;
-use crate::app::structs::User;
-use crate::adapters::UserRepository;
 use async_trait::async_trait;
 use diesel::{OptionalExtension, PgConnection, QueryDsl, r2d2, RunQueryDsl, ExpressionMethods};
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use log::info;
+use uuid::Uuid;
+
+
+pub mod schema;
+use crate::app::structs::User;
+use crate::adapters::UserRepository;
+
 use self::schema::users;
 use self::schema::users::dsl::*;
 
 
-const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 /*
 Читается так:
@@ -23,8 +27,7 @@ pub struct DbRepository {
 }
 
 impl DbRepository {
-    pub fn new() -> Self {
-        let database_url = "postgres://postgres:Qwe12345@localhost/user-service-database";
+    pub fn new(database_url: String) -> Self {
         let manager = ConnectionManager::<PgConnection>::new(database_url);
         let pool = Pool::builder()
             .build(manager)
@@ -36,7 +39,8 @@ impl DbRepository {
         self.pool.get().expect("Failed to get a connection")
     }
 
-    pub fn manage_migration(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    pub fn manage_migration(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        info!("Running migrations!");
         let conn = &mut self.get_conn();
         conn.run_pending_migrations(MIGRATIONS)?;
         Ok(())

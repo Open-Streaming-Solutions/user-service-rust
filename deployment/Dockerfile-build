@@ -1,0 +1,42 @@
+# Dockerfile-build
+#Сборочная
+FROM rust:latest as builder
+
+WORKDIR /usr/src/building
+#Найти нужные репозитории
+RUN echo "deb http://deb.debian.org/debian bookworm main" > /etc/apt/sources.list && \
+    echo "deb http://ftp.ru.debian.org/debian sid main" > /etc/apt/sources.list && \
+    echo "deb-src http://deb.debian.org/debian bookworm main" >> /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian-security/ bookworm-security main" >> /etc/apt/sources.list && \
+    echo "deb-src http://deb.debian.org/debian-security/ bookworm-security main" >> /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian bookworm-updates main" >> /etc/apt/sources.list && \
+    echo "deb-src http://deb.debian.org/debian bookworm-updates main" >> /etc/apt/sources.list &&\
+    apt-get update && apt-get install -y protobuf-compiler
+
+COPY ../Cargo.toml ./
+RUN mkdir -p /builded
+COPY ../server/migrations /builded/migrations
+COPY ../. .
+
+RUN cargo build --release
+
+RUN cp target/release/user-service-server /builded/ && cp target/release/user-service-test-client /builded/
+
+FROM debian:latest as User-Service-Server
+
+WORKDIR /service
+
+RUN apt-get update && apt-get install -y postgresql-client
+
+COPY --from=builder /builded/user-service-server .
+COPY --from=builder /builded/migrations .
+CMD ["./user-service-server"]
+
+
+FROM  debian:latest as User-Service-Test-Client
+
+# Установите рабочую директорию
+WORKDIR /usr/local/bin
+
+# Скопируйте скомпилированный бинарный файл из этапа сборки
+COPY --from=builder /builded/user-service-test-client .

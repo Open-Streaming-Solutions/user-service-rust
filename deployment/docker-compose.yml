@@ -1,36 +1,51 @@
 version: '3.8'
 
 services:
-  dev:
-    image: rust:latest
-    container_name: user-service
-    volumes:
-      - .:/workspace:cached
-    working_dir: /workspace
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/database
+  user-service-server:
+    hostname: User-Service-Server
+    container_name: User-Service-Server
+    build:
+      context: ../
+      dockerfile: deployment/Dockerfile-build
+      target: User-Service-Server
     depends_on:
-      - db
+      - user-service-database
+    ports:
+      - "8080:8080"
+    env_file:
+      - ../.env
+    stdin_open: true
+    tty: true
     networks:
-      - dev_network
+      - user-service-network
 
-  db:
+  user-service-test-client:
+    hostname: User-Service-Test-Client
+    container_name: User-Service-Test-Client
+    build:
+      context: ../
+      dockerfile: deployment/Dockerfile-build
+      target: User-Service-Test-Client
+    stdin_open: true
+    tty: true
+    networks:
+      - user-service-network
+
+  user-service-database:
+    hostname: User-Service-Database
     image: postgres:latest
-    container_name: postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: database
+    container_name: User-Service-Database
+    env_file:
+      - ../.env
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - dev_network
-
-networks:
-  dev_network:
-    driver: bridge
+      - user-service-network
 
 volumes:
   postgres_data:
+
+networks:
+  user-service-network:

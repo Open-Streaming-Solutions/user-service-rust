@@ -8,7 +8,7 @@ use crate::adapters::repo::InternalRepository;
 use crate::app::structs::User;
 use async_trait::async_trait;
 use crate::adapters::UserRepository;
-use crate::adapters::database::DbRepository;
+
 /*
 Читается вот так:
 Структура, С любым типом R Который должен реализовывать трейт UserRepository
@@ -151,7 +151,7 @@ impl Default for UserServiceCore<InternalRepository> {
         }
     }
 }
-
+/*
 impl Default for UserServiceCore<DbRepository> {
     fn default() -> Self {
         UserServiceCore {
@@ -159,3 +159,4 @@ impl Default for UserServiceCore<DbRepository> {
         }
     }
 }
+*/

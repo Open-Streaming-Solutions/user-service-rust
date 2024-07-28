@@ -95,7 +95,7 @@ async fn get_all_users(client: &mut UserServiceClient<Channel>) -> Result<(), Bo
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
-    let mut client = UserServiceClient::connect("http://127.0.0.1:8080").await?;
+    let mut client = UserServiceClient::connect("http://User-Service-Server:8080").await?;
 
     match args.action {
         Actions::Put | Actions::GetUserDataById | Actions::Update => {
