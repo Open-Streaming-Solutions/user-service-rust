@@ -1,4 +1,3 @@
-//use crate::adapters::repo::InternalRepository;
 use crate::repo::UserRepository;
 use crate::types::User;
 use async_trait::async_trait;
@@ -13,29 +12,18 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
-//use crate::adapters::internal_repo::InternalRepository;
-/*
-Читается вот так:
-Структура, С любым типом R Который должен реализовывать трейт UserRepository
-*/
+use crate::errors::GrpcError;
+
 #[derive(Clone)]
 pub struct UserServiceCore<R: UserRepository> {
     pub repository: Arc<R>,
 }
 
-/*
-Читается вот так:
-Реализация UserService (в котором находится описание gRPC) для структуры UserServiceCore с обобщенным типом R где
-тип R должен реализовывать трейт UserRepository и иметь время жизни 'static,
-это гарантирует, что R не содержит временных ссылок (ссылок на данные с ограниченным временем жизни)
-и безопасен для передачи между потоками.
-
-Возможно это можно сделать по-другому, но это первое что пришло в голову, если я хочу и DbRepository и Internalrepository использовать.
-*/
 #[async_trait]
 impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
     async fn get_user_data_by_id(
-        &self, request: Request<GetUserByIdRequest>,
+        &self,
+        request: Request<GetUserByIdRequest>,
     ) -> Result<Response<GetUserByIdResponse>, Status> {
         info!(
             "Received GetUserData request for UUID: {}",
@@ -44,9 +32,9 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
         let user_uuid = request.into_inner().user_uuid;
         let user_id = Uuid::parse_str(&user_uuid).map_err(|_| {
             error!("Invalid UUID: {}", user_uuid);
-            Status::invalid_argument("Invalid UUID")
+            GrpcError::InvalidArgument("Invalid UUID".to_string())
         })?;
-        if let Some(user) = self.repository.get_user(&user_id).await {
+        if let Some(user) = self.repository.get_user(&user_id).await.map_err(GrpcError::from)? {
             let reply = GetUserByIdResponse {
                 user_name: user.name,
                 user_email: user.email,
@@ -55,11 +43,13 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
             Ok(Response::new(reply))
         } else {
             error!("User with UUID {} not found", user_uuid);
-            Err(Status::not_found("User not found"))
+            Err(GrpcError::NotFound("User not found".to_string()).into())
         }
     }
+
     async fn get_user_id_by_nickname(
-        &self, request: Request<GetUserIdByNicknameRequest>,
+        &self,
+        request: Request<GetUserIdByNicknameRequest>,
     ) -> Result<Response<GetUserIdByNicknameResponse>, Status> {
         info!(
             "Received GetUserIdByNickname request for NickName: \"{}\"",
@@ -69,25 +59,27 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
 
         if user_name.is_empty() {
             error!("Received empty user_name in GetUserIdByNickname request");
-            return Err(Status::invalid_argument("user_name cannot be empty"));
+            return Err(GrpcError::InvalidArgument("user_name cannot be empty".to_string()).into());
         }
 
         match self.repository.get_user_id_by_nickname(&user_name).await {
-            Some(user_id) => {
+            Ok(Some(user_id)) => {
                 let response = GetUserIdByNicknameResponse {
                     user_uuid: user_id.to_string(),
                 };
                 Ok(Response::new(response))
             }
-            None => {
+            Ok(None) => {
                 error!("User with NickName \"{}\" not found", user_name);
-                Err(Status::not_found("User not found"))
+                Err(GrpcError::NotFound("User not found".to_string()).into())
             }
+            Err(e) => Err(GrpcError::from(e).into()),
         }
     }
 
     async fn put_user_data(
-        &self, request: Request<PutUserRequest>,
+        &self,
+        request: Request<PutUserRequest>,
     ) -> Result<Response<PutUserResponse>, Status> {
         info!(
             "Received PutUserData request for UUID: {}",
@@ -96,13 +88,13 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
         let req = request.into_inner();
         let user_id = Uuid::parse_str(&req.user_uuid).map_err(|_| {
             error!("Invalid UUID: {}", req.user_uuid);
-            Status::invalid_argument("Invalid UUID")
+            GrpcError::InvalidArgument("Invalid UUID".to_string())
         })?;
 
         // Проверка на существование UUID
-        if self.repository.get_user_id(&user_id).await.is_some() {
+        if self.repository.get_user_id(&user_id).await.map_err(GrpcError::from)?.is_some() {
             error!("User with UUID {} already exists", user_id);
-            return Err(Status::already_exists("User with this UUID already exists"));
+            return Err(GrpcError::AlreadyExists("User with this UUID already exists".to_string()).into());
         }
 
         let user = User {
@@ -111,7 +103,7 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
             email: req.user_email,
         };
 
-        self.repository.add_user(user).await;
+        self.repository.add_user(user).await.map_err(GrpcError::from)?;
         info!("User {} added successfully", req.user_uuid);
 
         let reply = PutUserResponse {
@@ -121,7 +113,8 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
     }
 
     async fn update_user_data(
-        &self, request: Request<UpdateUserRequest>,
+        &self,
+        request: Request<UpdateUserRequest>,
     ) -> Result<Response<UpdateUserResponse>, Status> {
         info!(
             "Received UpdateUserData request for UUID: {}",
@@ -130,12 +123,12 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
         let req = request.into_inner();
         let user_id = Uuid::parse_str(&req.user_uuid).map_err(|_| {
             error!("Invalid UUID: {}", req.user_uuid);
-            Status::invalid_argument("Invalid UUID")
+            GrpcError::InvalidArgument("Invalid UUID".to_string())
         })?;
 
-        let mut user = self.repository.get_user(&user_id).await.ok_or_else(|| {
+        let mut user = self.repository.get_user(&user_id).await.map_err(GrpcError::from)?.ok_or_else(|| {
             error!("User with UUID {} not found", user_id);
-            Status::not_found("User not found")
+            GrpcError::NotFound("User not found".to_string())
         })?;
 
         if !req.user_name.is_empty() {
@@ -145,7 +138,7 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
             user.email = req.user_email;
         }
 
-        self.repository.update_user_by_id(&user_id, user).await;
+        self.repository.update_user_by_id(&user_id, user).await.map_err(GrpcError::from)?;
         info!("User {} updated successfully", req.user_uuid);
 
         let reply = UpdateUserResponse {
@@ -155,10 +148,11 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
     }
 
     async fn get_all_users(
-        &self, _request: Request<GetAllUsersRequest>,
+        &self,
+        _request: Request<GetAllUsersRequest>,
     ) -> Result<Response<GetAllUsersResponse>, Status> {
         info!("Received GetAllUsers request");
-        let users = self.repository.get_all_users().await;
+        let users = self.repository.get_all_users().await.map_err(GrpcError::from)?;
         let response_users: Vec<lib_rpc::rpc::User> = users
             .into_iter()
             .map(|user| lib_rpc::rpc::User {
@@ -174,6 +168,7 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
         Ok(Response::new(response))
     }
 }
+
 #[cfg(test)]
 mod tests {
     use crate::repo::{InternalRepository, UserRepository};
@@ -191,6 +186,7 @@ mod tests {
     use crate::app;
     use crate::types::User;
     use app::user_service::UserServiceCore;
+
     #[tokio::test]
     async fn put_user_data_success() {
         let repo = Arc::new(InternalRepository::new());
@@ -215,8 +211,8 @@ mod tests {
         );
 
         let added_user = repo.get_user(&user_id).await.unwrap();
-        assert_eq!(added_user.name, "New User");
-        assert_eq!(added_user.email, "new@example.com");
+        assert_eq!(added_user.as_ref().unwrap().name, "New User");
+        assert_eq!(added_user.unwrap().email, "new@example.com");
     }
 
     #[tokio::test]
@@ -277,7 +273,7 @@ mod tests {
             name: "Test User".to_string(),
             email: "test@example.com".to_string(),
         };
-        repo.add_user(user).await;
+        repo.add_user(user).await.unwrap();
 
         let service = UserServiceCore {
             repository: repo.clone(),
@@ -303,7 +299,7 @@ mod tests {
             name: "Existing User".to_string(),
             email: "existing@example.com".to_string(),
         };
-        repo.add_user(user).await;
+        repo.add_user(user).await.unwrap();
 
         let service = UserServiceCore {
             repository: repo.clone(),
@@ -324,8 +320,8 @@ mod tests {
         );
 
         let updated_user = repo.get_user(&user_id).await.unwrap();
-        assert_eq!(updated_user.name, "Updated User");
-        assert_eq!(updated_user.email, "updated@example.com");
+        assert_eq!(updated_user.as_ref().unwrap().name, "Updated User");
+        assert_eq!(updated_user.unwrap().email, "updated@example.com");
     }
 
     #[tokio::test]
@@ -341,7 +337,7 @@ mod tests {
             email: "test_user@example.com".to_string(),
         };
 
-        repository.add_user(user.clone()).await;
+        repository.add_user(user.clone()).await.unwrap();
 
         let request = Request::new(GetUserIdByNicknameRequest {
             user_name: "test_user".to_string(),
@@ -364,5 +360,49 @@ mod tests {
             tonic::Code::InvalidArgument,
             "Expected InvalidArgument status"
         );
+    }
+
+    #[tokio::test]
+    async fn update_user_data_invalid_uuid() {
+        let repo = Arc::new(InternalRepository::new());
+
+        let service = UserServiceCore {
+            repository: repo.clone(),
+        };
+
+        let invalid_uuid = "invalid-uuid".to_string();
+        let request = Request::new(UpdateUserRequest {
+            user_uuid: invalid_uuid,
+            user_name: "Updated User".to_string(),
+            user_email: "updated@example.com".to_string(),
+        });
+
+        let response = service.update_user_data(request).await;
+        assert!(response.is_err(), "Expected error response");
+        let status = response.err().unwrap();
+        assert_eq!(status.code(), tonic::Code::InvalidArgument);
+        assert_eq!(status.message(), "Invalid UUID");
+    }
+
+    #[tokio::test]
+    async fn update_user_data_not_found() {
+        let repo = Arc::new(InternalRepository::new());
+
+        let service = UserServiceCore {
+            repository: repo.clone(),
+        };
+
+        let non_existent_uuid = Uuid::now_v7().to_string();
+        let request = Request::new(UpdateUserRequest {
+            user_uuid: non_existent_uuid,
+            user_name: "Updated User".to_string(),
+            user_email: "updated@example.com".to_string(),
+        });
+
+        let response = service.update_user_data(request).await;
+        assert!(response.is_err(), "Expected error response");
+        let status = response.err().unwrap();
+        assert_eq!(status.code(), tonic::Code::NotFound);
+        assert_eq!(status.message(), "User not found");
     }
 }

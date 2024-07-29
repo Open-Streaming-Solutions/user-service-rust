@@ -15,6 +15,7 @@ mod adapters;
 mod config;
 mod repo;
 mod types;
+mod errors;
 
 /*
 #[derive(Parser)]
