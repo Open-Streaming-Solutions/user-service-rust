@@ -1,17 +1,17 @@
 //use crate::adapters::repo::InternalRepository;
-use crate::adapters::UserRepository;
+use crate::repo::UserRepository;
+use crate::types::User;
 use async_trait::async_trait;
-use log::{error, info};
-use std::sync::Arc;
-use tonic::{Request, Response, Status};
 use lib_rpc::rpc::user_service_server::UserService;
 use lib_rpc::rpc::{
     GetAllUsersRequest, GetAllUsersResponse, GetUserByIdRequest, GetUserByIdResponse,
     GetUserIdByNicknameRequest, GetUserIdByNicknameResponse, PutUserRequest, PutUserResponse,
     UpdateUserRequest, UpdateUserResponse,
 };
+use log::{error, info};
+use std::sync::Arc;
+use tonic::{Request, Response, Status};
 use uuid::Uuid;
-use crate::types::User;
 
 //use crate::adapters::internal_repo::InternalRepository;
 /*
@@ -176,6 +176,7 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
 }
 #[cfg(test)]
 mod tests {
+    use crate::repo::{InternalRepository, UserRepository};
     use std::sync::Arc;
 
     use pretty_assertions::assert_eq;
@@ -187,13 +188,9 @@ mod tests {
         GetUserByIdRequest, GetUserIdByNicknameRequest, PutUserRequest, UpdateUserRequest,
     };
 
-
-    use crate::adapters::UserRepository;
+    use crate::app;
     use crate::types::User;
     use app::user_service::UserServiceCore;
-    use crate::app;
-    use crate::internal_repo::InternalRepository;
-
     #[tokio::test]
     async fn put_user_data_success() {
         let repo = Arc::new(InternalRepository::new());
@@ -368,6 +365,4 @@ mod tests {
             "Expected InvalidArgument status"
         );
     }
-
-
 }

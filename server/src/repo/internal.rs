@@ -1,5 +1,4 @@
-
-use crate::adapters::UserRepository;
+use crate::repo::UserRepository;
 use crate::types::User;
 use async_trait::async_trait;
 use dashmap::DashMap;

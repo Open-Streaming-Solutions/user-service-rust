@@ -13,8 +13,8 @@ use crate::config::Config;
 
 mod adapters;
 mod config;
-mod types;
 mod repo;
+mod types;
 
 /*
 #[derive(Parser)]
