@@ -26,15 +26,17 @@ services:
       context: ../
       dockerfile: deployment/Dockerfile-build
       target: User-Service-Test-Client
+    depends_on:
+      - user-service-server
     stdin_open: true
     tty: true
     networks:
       - user-service-network
 
   user-service-database:
-    hostname: User-Service-Database
+    hostname: User-Service-db
     image: postgres:latest
-    container_name: User-Service-Database
+    container_name: User-Service-Db
     env_file:
       - ../.env
     ports:
