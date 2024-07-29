@@ -1,4 +1,4 @@
-use crate::repo::{UserRepository, RepoError};
+use crate::repo::{RepoError, UserRepository};
 use crate::types::User;
 use async_trait::async_trait;
 use dashmap::DashMap;
@@ -38,13 +38,16 @@ impl UserRepository for InternalRepository {
     }
 
     async fn get_user_id_by_nickname(&self, user_name: &str) -> Result<Option<Uuid>, RepoError> {
-        Ok(self.storage
+        Ok(self
+            .storage
             .iter()
-            .find(|kv| kv.value().name == user_name)
+            .find(|kv| kv.value().username == user_name)
             .map(|kv| *kv.key()))
     }
 
-    async fn update_user_by_id(&self, user_id: &Uuid, updated_user: User) -> Result<Option<()>, RepoError> {
+    async fn update_user_by_id(
+        &self, user_id: &Uuid, updated_user: User,
+    ) -> Result<Option<()>, RepoError> {
         if self.storage.contains_key(user_id) {
             self.storage.insert(*user_id, updated_user);
             Ok(Some(()))
@@ -53,7 +56,9 @@ impl UserRepository for InternalRepository {
         }
     }
 
-    async fn update_user_by_nickname(&self, nick_name: &str, updated_user: User) -> Result<Option<()>, RepoError> {
+    async fn update_user_by_nickname(
+        &self, nick_name: &str, updated_user: User,
+    ) -> Result<Option<()>, RepoError> {
         if let Some(user_id) = self.get_user_id_by_nickname(nick_name).await? {
             self.update_user_by_id(&user_id, updated_user).await
         } else {

@@ -6,6 +6,6 @@ use uuid::Uuid;
 #[diesel(table_name = users)]
 pub struct User {
     pub id: Uuid,
-    pub name: String,
+    pub username: String,
     pub email: String,
 }

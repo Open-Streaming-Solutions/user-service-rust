@@ -1,6 +1,6 @@
 use chrono::Local;
 use fern::colors::{Color, ColoredLevelConfig};
-use lib_rpc::rpc::user_service_server::UserServiceServer;
+use lib_rpc::userpb::user_service_server::UserServiceServer;
 use log::info;
 use std::sync::Arc;
 use tonic::transport::Server;
@@ -13,10 +13,10 @@ use crate::config::Config;
 
 mod adapters;
 mod config;
+mod errors;
 mod repo;
 mod types;
-mod errors;
-mod macros;
+
 /*
 #[derive(Parser)]
 #[clap(author, version, about = "Типо сервер")]

@@ -3,7 +3,7 @@ use diesel::table;
 table! {
     users (id) {
         id -> Uuid,
-        name -> Varchar,
+        username -> Varchar,
         email -> Varchar,
     }
 }

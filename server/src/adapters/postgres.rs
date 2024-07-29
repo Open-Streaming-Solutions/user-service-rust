@@ -1,7 +1,7 @@
 use diesel::r2d2::{ConnectionManager, PooledConnection};
-use diesel::{r2d2, PgConnection, sql_query, RunQueryDsl};
-use diesel_migrations::{MigrationHarness, EmbeddedMigrations, embed_migrations};
-use log::{info, debug, error};
+use diesel::{r2d2, sql_query, PgConnection, RunQueryDsl};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use log::{debug, error, info};
 
 use crate::errors::{DbError, MigrationError};
 
@@ -16,7 +16,10 @@ pub struct DbRepository {
 
 impl DbRepository {
     pub fn new(database_url: String) -> Self {
-        debug!("Creating new DbRepository with database URL: {}", database_url);
+        debug!(
+            "Creating new DbRepository with database URL: {}",
+            database_url
+        );
         let manager = ConnectionManager::<PgConnection>::new(database_url);
         let pool = Pool::builder()
             .build(manager)
@@ -29,13 +32,15 @@ impl DbRepository {
         repo
     }
 
-    pub(crate) fn get_conn(&self) -> Result<PooledConnection<ConnectionManager<PgConnection>>, DbError> {
+    pub(crate) fn get_conn(
+        &self,
+    ) -> Result<PooledConnection<ConnectionManager<PgConnection>>, DbError> {
         debug!("Attempting to get a connection from the pool");
         match self.pool.get() {
             Ok(conn) => {
                 debug!("Successfully obtained a connection from the pool");
                 Ok(conn)
-            },
+            }
             Err(e) => {
                 error!("Failed to obtain a connection from the pool: {}", e);
                 Err(DbError::ConnectionError(e.to_string()))
@@ -54,9 +59,10 @@ impl DbRepository {
         debug!("Successfully obtained a connection for checking migrations");
 
         // Check if the database is initialized
-        let is_initialized = sql_query("SELECT 1 FROM information_schema.tables WHERE table_name = 'users'")
-            .execute(conn)
-            .is_ok();
+        let is_initialized =
+            sql_query("SELECT 1 FROM information_schema.tables WHERE table_name = 'users'")
+                .execute(conn)
+                .is_ok();
 
         if !is_initialized {
             info!("Database is not initialized. Running initial setup migrations.");
