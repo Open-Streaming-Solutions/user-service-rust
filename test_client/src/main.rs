@@ -19,6 +19,11 @@ enum Actions {
 #[derive(Parser, Debug, Clone)]
 #[clap(author, version, about = "Типо клиент")]
 struct Args {
+    #[arg(long = "host", default_value = "User-Service-Server")]
+    target_host: String,
+    #[arg(short = 'p', long = "port", default_value_t = 8080)]
+    target_port: u16,
+
     #[arg(short = 'a', long, value_enum)]
     action: Actions,
 
@@ -109,8 +114,9 @@ async fn get_all_users(
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
+    let addr = format!("http://{}:{}", args.target_host, args.target_port);
 
-    let mut client = UserServiceClient::connect("http://User-Service-Server:8080").await?;
+    let mut client = UserServiceClient::connect(addr).await?;
 
     match args.action {
         Actions::Put | Actions::GetUserDataById | Actions::Update => {
