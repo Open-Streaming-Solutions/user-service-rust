@@ -1,4 +1,4 @@
-use crate::adapters::database::schema::users;
+use crate::adapters::schema::users;
 use diesel::{Insertable, Queryable};
 use uuid::Uuid;
 
@@ -6,6 +6,6 @@ use uuid::Uuid;
 #[diesel(table_name = users)]
 pub struct User {
     pub id: Uuid,
-    pub user_name: String,
-    pub user_email: String,
+    pub username: String,
+    pub email: String,
 }

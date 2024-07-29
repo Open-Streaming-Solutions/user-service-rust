@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 #GRPC
-user-service-rpc = { workspace = true}
+lib-rpc = { workspace = true}
 tonic = { workspace = true}
 tonic-reflection = { workspace = true}
 prost = { workspace = true}
@@ -15,3 +15,5 @@ uuid = { workspace = true}
 tokio = { workspace = true}
 clap = { workspace = true}
 clap_derive = { workspace = true}
+rand = "0.8.5"
+futures = "0.3.30"

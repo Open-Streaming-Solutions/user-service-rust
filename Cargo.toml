@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "rpc",
+    "lib-rpc",
     "server",
     "test_client"
 
@@ -10,7 +10,7 @@ members = [
 
 [workspace.dependencies]
 dotenv = "0.15.0"
-user-service-rpc = { path = "./rpc" }
+lib-rpc = { path = "lib-rpc" }
 tonic = "0.12.1"
 tonic-reflection = "0.12.1"
 prost = "0.13.1"
@@ -24,3 +24,4 @@ clap = { version = "4.5.11", features = ["derive"] }
 clap_derive = "4.5.11"
 pretty_assertions = "1.4.0"
 serial_test = "3.1.1"
+thiserror = "1.0.63"
