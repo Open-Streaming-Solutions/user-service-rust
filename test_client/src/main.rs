@@ -1,19 +1,21 @@
 use clap::{Parser, ValueEnum};
-use lib_rpc::rpc::user_service_client::UserServiceClient;
-use lib_rpc::rpc::{
-    GetAllUsersRequest, GetUserByIdRequest, GetUserIdByNicknameRequest, PutUserRequest,
-    UpdateUserRequest,
-};
+use futures::future::join_all;
+use lib_rpc::userpb::user_service_client::UserServiceClient;
+use lib_rpc::userpb::{CreateUserRequest, GetAllUsersRequest, GetUserByIdRequest, GetUserRequest, UpdateUserRequest};
 use tonic::transport::Channel;
 use uuid::Uuid;
+use rand::{Rng, thread_rng};
+use rand::distributions::Alphanumeric;
+use tokio::task;
 
 #[derive(Debug, ValueEnum, Clone)]
 enum Actions {
     GetUserDataById,
-    Put,
+    CreateUser,
     Update,
     GetAll,
     GetUserIdByNickname,
+    Generate,
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -28,49 +30,52 @@ struct Args {
     action: Actions,
 
     #[arg(short = 'i', long)]
-    user_uuid: Option<String>,
+    uuid: Option<String>,
 
     #[arg(short = 'n', long, default_value_t = String::new())]
-    user_name: String,
+    username: String,
 
     #[arg(short = 'e', long, default_value_t = String::new())]
-    user_email: String,
+    email: String,
+
+    #[arg(short = 'g', long, default_value_t = 1)]
+    generate_count: usize,
 }
 
-async fn put_user_data(
+async fn create_user(
     client: &mut UserServiceClient<Channel>, user_uuid: &Uuid, user_name: &str, user_email: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let request = tonic::Request::new(PutUserRequest {
-        user_uuid: user_uuid.to_string(),
-        user_name: user_name.to_string(),
-        user_email: user_email.to_string(),
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let request = tonic::Request::new(CreateUserRequest {
+        uuid: user_uuid.to_string(),
+        username: user_name.to_string(),
+        email: user_email.to_string(),
     });
 
-    let response = client.put_user_data(request).await?;
-    println!("PutUserData={:?}", response);
+    let response = client.create_user(request).await?;
+    println!("CreateUser={:?}", response);
 
     Ok(())
 }
 
 async fn get_user_data_by_id(
     client: &mut UserServiceClient<Channel>, user_uuid: &Uuid,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let request = tonic::Request::new(GetUserByIdRequest {
-        user_uuid: user_uuid.to_string(),
+        uuid: user_uuid.to_string(),
     });
 
     let response = client.get_user_data_by_id(request).await?;
-    println!("GetUserData={:?}", response);
+    println!("GetUserDataById={:?}", response);
 
     Ok(())
 }
 
-async fn get_user_id_by_nickname(
-    client: &mut UserServiceClient<Channel>, user_name: String,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let request = tonic::Request::new(GetUserIdByNicknameRequest { user_name });
+async fn get_user(
+    client: &mut UserServiceClient<Channel>, username: String,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let request = tonic::Request::new(GetUserRequest { username });
 
-    let response = client.get_user_id_by_nickname(request).await?;
+    let response = client.get_user(request).await?;
     println!("GetUserIdByNickname={:?}", response);
 
     Ok(())
@@ -79,11 +84,11 @@ async fn get_user_id_by_nickname(
 async fn update_user_data(
     client: &mut UserServiceClient<Channel>, user_uuid: &Uuid, user_name: Option<&str>,
     user_email: Option<&str>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let request = tonic::Request::new(UpdateUserRequest {
-        user_uuid: user_uuid.to_string(),
-        user_name: user_name.unwrap_or_default().to_string(),
-        user_email: user_email.unwrap_or_default().to_string(),
+        uuid: user_uuid.to_string(),
+        username: user_name.unwrap_or_default().to_string(),
+        email: user_email.unwrap_or_default().to_string(),
     });
 
     let response = client.update_user_data(request).await?;
@@ -94,7 +99,7 @@ async fn update_user_data(
 
 async fn get_all_users(
     client: &mut UserServiceClient<Channel>,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let request = tonic::Request::new(GetAllUsersRequest {});
     let response = client.get_all_users(request).await?;
     println!("GetAllUsers={:?}", response);
@@ -104,10 +109,39 @@ async fn get_all_users(
     for user in users {
         println!(
             "UUID: {}, Name: {}, Email: {}",
-            user.user_uuid, user.user_name, user.user_email
+            user.uuid, user.username, user.email
         );
     }
 
+    Ok(())
+}
+
+fn generate_random_user() -> (Uuid, String, String) {
+    let user_id = Uuid::now_v7();
+    let user_name: String = thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(10)
+        .map(char::from)
+        .collect();
+    let user_email = format!("{}@example.com", user_name);
+    (user_id, user_name, user_email)
+}
+
+async fn generate_users(
+    client: UserServiceClient<Channel>, count: usize,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut futures = Vec::new();
+    for _ in 0..count {
+        let (user_id, user_name, user_email) = generate_random_user();
+        let mut client = client.clone();
+        futures.push(task::spawn(async move {
+            create_user(&mut client, &user_id, &user_name, &user_email).await
+        }));
+    }
+    let results = join_all(futures).await;
+    for result in results {
+        result??;
+    }
     Ok(())
 }
 
@@ -116,41 +150,46 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let addr = format!("http://{}:{}", args.target_host, args.target_port);
 
-    let mut client = UserServiceClient::connect(addr).await?;
+    let client = UserServiceClient::connect(addr.clone()).await?;
 
     match args.action {
-        Actions::Put | Actions::GetUserDataById | Actions::Update => {
+        Actions::CreateUser
+        | Actions::GetUserDataById
+        | Actions::Update => {
             let user_uuid_str = args
-                .user_uuid
+                .uuid
                 .as_deref()
                 .ok_or("user_uuid is required for this action")?;
             let user_uuid = Uuid::parse_str(user_uuid_str)?;
 
             match args.action {
-                Actions::Put => {
-                    put_user_data(&mut client, &user_uuid, &args.user_name, &args.user_email)
-                        .await?;
+                Actions::CreateUser => {
+                    create_user(&mut client.clone(), &user_uuid, &args.username, &args.email)
+                        .await.unwrap();
                 }
                 Actions::GetUserDataById => {
-                    get_user_data_by_id(&mut client, &user_uuid).await?;
+                    get_user_data_by_id(&mut client.clone(), &user_uuid).await.unwrap();
                 }
                 Actions::Update => {
                     update_user_data(
-                        &mut client,
+                        &mut client.clone(),
                         &user_uuid,
-                        Some(&args.user_name),
-                        Some(&args.user_email),
+                        Some(&args.username),
+                        Some(&args.email),
                     )
-                    .await?;
+                        .await.unwrap();
                 }
                 _ => unreachable!(),
             }
         }
         Actions::GetAll => {
-            get_all_users(&mut client).await?;
+            get_all_users(&mut client.clone()).await.unwrap();
         }
         Actions::GetUserIdByNickname => {
-            get_user_id_by_nickname(&mut client, args.user_name).await?;
+            get_user(&mut client.clone(), args.username).await.unwrap();
+        }
+        Actions::Generate => {
+            generate_users(client, args.generate_count).await.unwrap();
         }
     }
 
