@@ -7,13 +7,13 @@ use crate::types::User;
 use async_trait::async_trait;
 use diesel::associations::HasTable;
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl};
-use log::{debug, error};
+use log::{debug, error, trace};
 use uuid::Uuid;
 
 #[async_trait]
 impl UserRepository for DbRepository {
     async fn add_user(&self, user: User) -> Result<(), RepoError> {
-        debug!("Adding user: {:?}", user);
+        trace!("Adding user: {:?}", user);
         let conn = &mut self.get_conn()?;
         let new_user = User {
             id: user.id,
@@ -38,7 +38,7 @@ impl UserRepository for DbRepository {
             error!("Failed to fetch all users: {}", e);
             RepoError::DbError(DbError::QueryError(e.to_string()))
         })?;
-        debug!("Fetched all users successfully: {:?}", result);
+        trace!("Fetched all users successfully: {:?}", result);
         Ok(result)
     }
 
@@ -153,18 +153,20 @@ mod tests {
     use std::env;
     use tokio;
     use uuid::Uuid;
+    use crate::errors::DbError;
 
-    fn setup_test_db() -> r2d2::Pool<ConnectionManager<PgConnection>> {
+    fn setup_test_db() -> Result<r2d2::Pool<ConnectionManager<PgConnection>>, DbError> {
         dotenv().ok();
 
-        let database_url = env::var("TEST_DATABASE_URL").expect("DATABASE_URL must be set");
-        let db_repo = DbRepository::new(database_url);
+        let database_url = env::var("TEST_DATABASE_URL").map_err(|_| {
+            DbError::ConnectionError("TEST_DATABASE_URL must be set".to_string())
+        })?;
 
-        db_repo
-            .manage_migration()
-            .expect("Failed to run migrations");
+        let db_repo = DbRepository::new(database_url)?;
 
-        db_repo.pool
+        db_repo.manage_migration()?;
+
+        Ok(db_repo.pool)
     }
 
     fn clear_test_db(pool: &Pool) {
@@ -177,7 +179,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_manage_migration() {
-        let pool = setup_test_db();
+        let pool = setup_test_db().expect("Failed to setup test database");
         let repo = DbRepository { pool: pool.clone() };
         let result = repo.manage_migration();
         assert!(result.is_ok(), "Migration should run successfully");
@@ -186,7 +188,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn add_user() {
-        let pool = setup_test_db();
+        let pool = setup_test_db().expect("Failed to setup test database");
         let repo = DbRepository { pool: pool.clone() };
         clear_test_db(&pool);
 
@@ -208,7 +210,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn get_user_data_by_id() {
-        let pool = setup_test_db();
+        let pool = setup_test_db().expect("Failed to setup test database");
         let repo = DbRepository { pool: pool.clone() };
         clear_test_db(&pool);
 
@@ -231,7 +233,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn get_user_id() {
-        let pool = setup_test_db();
+        let pool = setup_test_db().expect("Failed to setup test database");
         let repo = DbRepository { pool: pool.clone() };
         clear_test_db(&pool);
 
@@ -257,7 +259,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn get_user_id_by_nickname() {
-        let pool = setup_test_db();
+        let pool = setup_test_db().expect("Failed to setup test database");
         let repo = DbRepository { pool: pool.clone() };
         clear_test_db(&pool);
 
@@ -283,7 +285,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn update_user_by_id() {
-        let pool = setup_test_db();
+        let pool = setup_test_db().expect("Failed to setup test database");
         let repo = DbRepository { pool: pool.clone() };
         clear_test_db(&pool);
 
@@ -316,7 +318,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn update_user_by_nickname() {
-        let pool = setup_test_db();
+        let pool = setup_test_db().expect("Failed to setup test database");
         let repo = DbRepository { pool: pool.clone() };
         clear_test_db(&pool);
 
@@ -348,3 +350,4 @@ mod tests {
         assert_eq!(fetched_user.unwrap().username, "updateduser");
     }
 }
+

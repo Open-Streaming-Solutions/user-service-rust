@@ -69,13 +69,19 @@ impl From<GrpcError> for Status {
         }
     }
 }
-
+///Переделать
 impl From<RepoError> for GrpcError {
     fn from(err: RepoError) -> Self {
         match err {
-            RepoError::DbError(e) => GrpcError::Internal(format!("Database error: {:?}", e)),
+            RepoError::DbError(..) => GrpcError::Internal("Что-то пошло не так".parse().unwrap()),
             RepoError::UserNotFound => GrpcError::NotFound("User not found".to_string()),
             RepoError::Unknown(e) => GrpcError::Unknown(format!("Unknown error: {}", e)),
         }
+    }
+}
+///Переделать
+impl From<MigrationError> for DbError {
+    fn from(err: MigrationError) -> Self {
+        DbError::ConnectionError(err.to_string())
     }
 }

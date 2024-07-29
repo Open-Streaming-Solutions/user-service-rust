@@ -41,4 +41,4 @@ WORKDIR /usr/local/bin
 # Скопируйте скомпилированный бинарный файл из этапа сборки
 COPY --from=builder /builded/user-service-test-client .
 
-CMD ["./user-service-test-client -a put -i 0189a30a-60c7-7135-b683-7d7f3783d4b7 -n test1 -e test@test.ru"]
+#CMD ["./user-service-test-client -a put -i 0189a30a-60c7-7135-b683-7d7f3783d4b7 -n test1 -e test@test.ru"]

@@ -57,7 +57,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Initializing the UserServiceServer...");
 
-    let db_repository = DbRepository::new(config.database_url);
+    ///Переделать
+    let db_repository = DbRepository::new(config.database_url)
+        .map_err(|e| {
+            eprintln!("Failed to create DbRepository: {:?}", e);
+            e
+        })
+        .unwrap();
 
     let user_service = UserServiceCore {
         repository: Arc::new(db_repository),

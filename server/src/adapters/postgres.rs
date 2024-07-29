@@ -1,7 +1,8 @@
+use std::time::Duration;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel::{r2d2, sql_query, PgConnection, RunQueryDsl};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 
 use crate::errors::{DbError, MigrationError};
 
@@ -15,21 +16,37 @@ pub struct DbRepository {
 }
 
 impl DbRepository {
-    pub fn new(database_url: String) -> Self {
+    pub fn new(database_url: String) -> Result<Self, DbError> {
         debug!(
             "Creating new DbRepository with database URL: {}",
-            database_url
+            &database_url
         );
-        let manager = ConnectionManager::<PgConnection>::new(database_url);
-        let pool = Pool::builder()
-            .build(manager)
-            .expect("Failed to create pool.");
+
+        ///Переделать это
+        let mut first_attempt = true;
+        let pool = loop {
+            let manager = ConnectionManager::<PgConnection>::new(database_url.clone());
+            match Pool::builder().build(manager) {
+                Ok(p) => {
+                    if !first_attempt {
+                        info!("Connection restored");
+                    }
+                    break p;
+                }
+                Err(e) => {
+                    error!("Failed to create pool: {}", e);
+                    warn!("Retrying to connect in 5 seconds...");
+                    std::thread::sleep(Duration::from_secs(5));
+                    first_attempt = false;
+                }
+            }
+        };
         let repo = DbRepository { pool };
 
         // Применение миграций при создании нового репозитория
-        repo.manage_migration().expect("Failed to run migrations");
+        repo.manage_migration()?;
 
-        repo
+        Ok(repo)
     }
 
     pub(crate) fn get_conn(
