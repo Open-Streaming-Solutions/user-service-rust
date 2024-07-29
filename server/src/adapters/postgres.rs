@@ -37,7 +37,7 @@ impl DbRepository {
                 Ok(conn)
             },
             Err(e) => {
-                debug!("Failed to obtain a connection from the pool: {}", e);
+                error!("Failed to obtain a connection from the pool: {}", e);
                 Err(DbError::ConnectionError(e.to_string()))
             }
         }

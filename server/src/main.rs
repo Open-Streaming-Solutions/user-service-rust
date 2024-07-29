@@ -16,7 +16,7 @@ mod config;
 mod repo;
 mod types;
 mod errors;
-
+mod macros;
 /*
 #[derive(Parser)]
 #[clap(author, version, about = "Типо сервер")]

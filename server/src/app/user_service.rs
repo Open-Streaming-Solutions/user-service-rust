@@ -13,7 +13,7 @@ use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
 use crate::errors::GrpcError;
-
+use crate::parse_uuid;
 #[derive(Clone)]
 pub struct UserServiceCore<R: UserRepository> {
     pub repository: Arc<R>,
@@ -86,10 +86,7 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
             request.get_ref().user_uuid
         );
         let req = request.into_inner();
-        let user_id = Uuid::parse_str(&req.user_uuid).map_err(|_| {
-            error!("Invalid UUID: {}", req.user_uuid);
-            GrpcError::InvalidArgument("Invalid UUID".to_string())
-        })?;
+        let user_id = parse_uuid!(&req.user_uuid);
 
         // Проверка на существование UUID
         if self.repository.get_user_id(&user_id).await.map_err(GrpcError::from)?.is_some() {
@@ -121,12 +118,10 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
             request.get_ref().user_uuid
         );
         let req = request.into_inner();
-        let user_id = Uuid::parse_str(&req.user_uuid).map_err(|_| {
-            error!("Invalid UUID: {}", req.user_uuid);
-            GrpcError::InvalidArgument("Invalid UUID".to_string())
-        })?;
+        let user_id = parse_uuid!(&req.user_uuid);
 
-        let mut user = self.repository.get_user(&user_id).await.map_err(GrpcError::from)?.ok_or_else(|| {
+        let mut user = self.repository.get_user(&user_id).await.map_err(GrpcError::from)?
+            .ok_or_else(|| {
             error!("User with UUID {} not found", user_id);
             GrpcError::NotFound("User not found".to_string())
         })?;
