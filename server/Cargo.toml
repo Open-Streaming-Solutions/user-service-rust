@@ -33,6 +33,7 @@ async-trait = "0.1.81"
 diesel = { version = "2.2.2", features = ["postgres", "r2d2", "uuid"] }
 diesel_migrations = "2.2.0"
 thiserror = {workspace = true}
+regex = "1.10.5"
 
 [dev-dependencies]
 pretty_assertions = { workspace = true}

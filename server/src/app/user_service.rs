@@ -228,7 +228,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn put_user_data_invalid_uuid() {
+    async fn create_user_invalid_uuid() {
         let repo = Arc::new(InternalRepository::new());
 
         let service = UserServiceCore {
@@ -250,7 +250,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn put_user_data_duplicate_uuid() {
+    async fn create_user_duplicate_uuid() {
         let repo = Arc::new(InternalRepository::new());
 
         let service = UserServiceCore {
