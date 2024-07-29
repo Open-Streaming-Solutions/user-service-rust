@@ -1,10 +1,10 @@
 use clap::{Parser, ValueEnum};
-use tonic::transport::Channel;
 use lib_rpc::rpc::user_service_client::UserServiceClient;
 use lib_rpc::rpc::{
     GetAllUsersRequest, GetUserByIdRequest, GetUserIdByNicknameRequest, PutUserRequest,
     UpdateUserRequest,
 };
+use tonic::transport::Channel;
 use uuid::Uuid;
 
 #[derive(Debug, ValueEnum, Clone)]
