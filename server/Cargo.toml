@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 #GRPC
-user-service-rpc = { workspace = true}
+lib-rpc = { workspace = true}
 tonic = { workspace = true}
 prost = { workspace = true}
 prost-types = { workspace = true}

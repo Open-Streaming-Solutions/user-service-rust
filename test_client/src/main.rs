@@ -1,7 +1,7 @@
 use clap::{Parser, ValueEnum};
 use tonic::transport::Channel;
-use user_service_rpc::rpc::user_service_client::UserServiceClient;
-use user_service_rpc::rpc::{
+use lib_rpc::rpc::user_service_client::UserServiceClient;
+use lib_rpc::rpc::{
     GetAllUsersRequest, GetUserByIdRequest, GetUserIdByNicknameRequest, PutUserRequest,
     UpdateUserRequest,
 };

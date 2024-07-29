@@ -1,2 +1,1 @@
-pub mod structs;
-pub(crate) mod user_service;
+pub mod user_service;

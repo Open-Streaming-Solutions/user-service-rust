@@ -1,9 +1,10 @@
-use crate::app::structs::User;
+use crate::types::User;
 use tonic::async_trait;
 use uuid::Uuid;
 
-pub mod database;
-pub mod repo;
+pub mod postgres;
+
+pub mod schema;
 
 // Типаж, чтобы можно было и DbRepository и InternalRepository использовать (Интерфейс)
 #[async_trait]

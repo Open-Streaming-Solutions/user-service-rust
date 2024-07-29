@@ -6,14 +6,17 @@ use log::info;
 use std::env;
 use std::sync::Arc;
 use tonic::transport::Server;
-use user_service_rpc::rpc::user_service_server::UserServiceServer;
+use lib_rpc::rpc::user_service_server::UserServiceServer;
 
 mod app;
-use crate::adapters::database::DbRepository;
-use app::user_service::core::UserServiceCore;
+
+use crate::adapters::postgres::DbRepository;
+use crate::app::user_service::UserServiceCore;
 
 mod adapters;
-mod tests;
+mod types;
+pub mod internal_repo;
+mod config;
 
 #[derive(Parser)]
 #[clap(author, version, about = "Типо сервер")]

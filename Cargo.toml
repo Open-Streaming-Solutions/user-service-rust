@@ -10,7 +10,7 @@ members = [
 
 [workspace.dependencies]
 dotenv = "0.15.0"
-user-service-rpc = { path = "./rpc" }
+lib-rpc = { path = "./rpc" }
 tonic = "0.12.1"
 tonic-reflection = "0.12.1"
 prost = "0.13.1"
