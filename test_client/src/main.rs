@@ -1,12 +1,14 @@
 use clap::{Parser, ValueEnum};
 use futures::future::join_all;
 use lib_rpc::userpb::user_service_client::UserServiceClient;
-use lib_rpc::userpb::{CreateUserRequest, GetAllUsersRequest, GetUserByIdRequest, GetUserRequest, UpdateUserRequest};
+use lib_rpc::userpb::{
+    CreateUserRequest, GetAllUsersRequest, GetUserByIdRequest, GetUserRequest, UpdateUserRequest,
+};
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+use tokio::task;
 use tonic::transport::Channel;
 use uuid::Uuid;
-use rand::{Rng, thread_rng};
-use rand::distributions::Alphanumeric;
-use tokio::task;
 
 #[derive(Debug, ValueEnum, Clone)]
 enum Actions {
@@ -153,9 +155,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = UserServiceClient::connect(addr.clone()).await?;
 
     match args.action {
-        Actions::CreateUser
-        | Actions::GetUserDataById
-        | Actions::Update => {
+        Actions::CreateUser | Actions::GetUserDataById | Actions::Update => {
             let user_uuid_str = args
                 .uuid
                 .as_deref()
@@ -165,10 +165,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             match args.action {
                 Actions::CreateUser => {
                     create_user(&mut client.clone(), &user_uuid, &args.username, &args.email)
-                        .await.unwrap();
+                        .await
+                        .unwrap();
                 }
                 Actions::GetUserDataById => {
-                    get_user_data_by_id(&mut client.clone(), &user_uuid).await.unwrap();
+                    get_user_data_by_id(&mut client.clone(), &user_uuid)
+                        .await
+                        .unwrap();
                 }
                 Actions::Update => {
                     update_user_data(
@@ -177,7 +180,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         Some(&args.username),
                         Some(&args.email),
                     )
-                        .await.unwrap();
+                    .await
+                    .unwrap();
                 }
                 _ => unreachable!(),
             }
