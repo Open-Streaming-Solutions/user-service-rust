@@ -1,7 +1,6 @@
 use crate::adapters::schema::users;
 use diesel::{Insertable, Queryable};
 use uuid::Uuid;
-use crate::adapters::schema::users::{email, id, username};
 
 #[derive(Debug, Clone, Queryable, Insertable, PartialEq)]
 #[diesel(table_name = users)]
@@ -29,5 +28,15 @@ impl User {
 
     pub fn get_email(&self) -> &str {
         &self.email
+    }
+    pub fn set_username(&mut self, username: String) {
+        self.username = username;
+    }
+
+    pub fn set_email(&mut self, email: String) {
+        self.email = email;
+    }
+    pub fn set_id(&mut self, id: Uuid) {
+        self.id = id;
     }
 }
