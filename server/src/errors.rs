@@ -1,5 +1,5 @@
 use thiserror::Error;
-use tonic::Status;
+//use tonic::Status;
 
 #[derive(Debug, Error)]
 pub enum DbError {
@@ -39,23 +39,23 @@ pub enum AppError {
     #[error("Other Application Error: {0}")]
     Other(String),
 }
-
+/*
 #[derive(Debug, Error)]
 pub enum GrpcError {
     #[error("Invalid argument: {0}")]
-    InvalidArgument(String),
+    InvalidArgument(Status),
 
     #[error("Not found: {0}")]
-    NotFound(String),
+    NotFound(Status),
 
     #[error("Already exists: {0}")]
-    AlreadyExists(String),
+    AlreadyExists(Status),
 
     #[error("Internal server error: {0}")]
-    Internal(String),
+    Internal(Status),
 
     #[error("Unknown error: {0}")]
-    Unknown(String),
+    Unknown(Status),
 }
 
 impl From<GrpcError> for Status {
@@ -79,7 +79,9 @@ impl From<RepoError> for GrpcError {
         }
     }
 }
-///Переделать
+ */
+
+//Todo Переделать
 impl From<MigrationError> for DbError {
     fn from(err: MigrationError) -> Self {
         DbError::ConnectionError(err.to_string())
