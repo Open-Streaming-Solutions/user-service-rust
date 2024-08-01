@@ -9,9 +9,12 @@ use diesel::associations::HasTable;
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl};
 use log::{debug, error, trace};
 use uuid::Uuid;
+use diesel::result::DatabaseErrorKind;
+use diesel::result::Error as DieselError;
 
 #[async_trait]
 impl UserRepository for DbRepository {
+    // ToDo переделать обработку ошибок по-человечески
     async fn add_user(&self, new_user: User) -> Result<(), RepoError> {
         trace!("Adding user: {:?}", new_user);
         let conn = &mut self.get_conn()?;
@@ -20,8 +23,38 @@ impl UserRepository for DbRepository {
             .values(&new_user)
             .execute(conn)
             .map_err(|e| {
-                error!("Failed to add user: {}", e);
-                RepoError::DbError(DbError::QueryError(e.to_string()))
+                if let DieselError::DatabaseError(db_error_kind, db_error_info) = &e {
+                    match db_error_kind {
+                        DatabaseErrorKind::UniqueViolation => {
+                            let constraint = db_error_info.constraint_name();
+                            match constraint {
+                                Some("users_pkey") => {
+                                    debug!("User ID already exists: {}", e);
+                                    RepoError::AlreadyExists("User ID already exists".to_string())
+                                },
+                                Some("users_username_key") => {
+                                    debug!("Username already exists: {}", e);
+                                    RepoError::AlreadyExists("Username already exists".to_string())
+                                },
+                                Some("users_email_key") => {
+                                    debug!("Email already exists: {}", e);
+                                    RepoError::AlreadyExists("Email already exists".to_string())
+                                },
+                                _ => {
+                                    error!("Database unexpected query error: {}", e);
+                                    RepoError::DbError(DbError::QueryError(e.to_string()))
+                                },
+                            }
+                        },
+                        _ => {
+                            error!("Database unexpected error: {}", e);
+                            RepoError::DbError(DbError::QueryError(e.to_string()))
+                        },
+                    }
+                } else {
+                    error!("Database unexpected error: {}", e);
+                    RepoError::DbError(DbError::QueryError(e.to_string()))
+                }
             })?;
         debug!("User added successfully: {:?}", new_user);
         Ok(())
@@ -77,7 +110,7 @@ impl UserRepository for DbRepository {
         debug!("Fetched user ID by nickname {}: {:?}", nickname, result);
         Ok(result)
     }
-    ///Переделать
+    // ToDo Переделать обработку ошибок по человечески, возможно стоит объединить 2 метода в 1
     async fn update_user_by_id(
         &self, user_id: &Uuid, updated_user: User,
     ) -> Result<Option<()>, RepoError> {
@@ -91,8 +124,34 @@ impl UserRepository for DbRepository {
             ))
             .execute(conn)
             .map_err(|e| {
-                error!("Failed to update user with ID {}: {}", user_id, e);
-                RepoError::DbError(DbError::QueryError(e.to_string()))
+                if let DieselError::DatabaseError(db_error_kind, db_error_info) = &e {
+                    match db_error_kind {
+                        DatabaseErrorKind::UniqueViolation => {
+                            let constraint = db_error_info.constraint_name();
+                            match constraint {
+                                Some("users_username_key") => {
+                                    debug!("Username already exists: {}", e);
+                                    RepoError::AlreadyExists("Username already exists".to_string())
+                                },
+                                Some("users_email_key") => {
+                                    debug!("Email already exists: {}", e);
+                                    RepoError::AlreadyExists("Email already exists".to_string())
+                                },
+                                _ => {
+                                    error!("Failed to update user with ID {}: {}", user_id, e);
+                                    RepoError::DbError(DbError::QueryError(e.to_string()))
+                                },
+                            }
+                        },
+                        _ => {
+                            error!("Failed to update user with ID {}: {}", user_id, e);
+                            RepoError::DbError(DbError::QueryError(e.to_string()))
+                        },
+                    }
+                } else {
+                    error!("Failed to update user with ID {}: {}", user_id, e);
+                    RepoError::DbError(DbError::QueryError(e.to_string()))
+                }
             })?;
 
         if updated_rows > 0 {
@@ -104,14 +163,12 @@ impl UserRepository for DbRepository {
         }
     }
 
-    ///Переделать
+
+    // ToDo Переделать обработку ошибок по человечески, возможно стоит объединить 2 метода в 1
     async fn update_user_by_username(
         &self, nick_name: &str, updated_user: User,
     ) -> Result<Option<()>, RepoError> {
-        debug!(
-            "Updating user with nickname {}: {:?}",
-            nick_name, updated_user
-        );
+        debug!("Updating user with nickname {}: {:?}", nick_name, updated_user);
         let conn = &mut self.get_conn()?;
         let target = users.filter(username.eq(nick_name));
         let updated_rows = diesel::update(target)
@@ -121,8 +178,34 @@ impl UserRepository for DbRepository {
             ))
             .execute(conn)
             .map_err(|e| {
-                debug!("Failed to update user with nickname {}: {}", nick_name, e);
-                RepoError::DbError(DbError::QueryError(e.to_string()))
+                if let DieselError::DatabaseError(db_error_kind, db_error_info) = &e {
+                    match db_error_kind {
+                        DatabaseErrorKind::UniqueViolation => {
+                            let constraint = db_error_info.constraint_name();
+                            match constraint {
+                                Some("users_username_key") => {
+                                    debug!("Username already exists: {}", e);
+                                    RepoError::AlreadyExists("Username already exists".to_string())
+                                },
+                                Some("users_email_key") => {
+                                    debug!("Email already exists: {}", e);
+                                    RepoError::AlreadyExists("Email already exists".to_string())
+                                },
+                                _ => {
+                                    error!("Failed to update user with nickname {}: {}", nick_name, e);
+                                    RepoError::DbError(DbError::QueryError(e.to_string()))
+                                },
+                            }
+                        },
+                        _ => {
+                            error!("Failed to update user with nickname {}: {}", nick_name, e);
+                            RepoError::DbError(DbError::QueryError(e.to_string()))
+                        },
+                    }
+                } else {
+                    error!("Failed to update user with nickname {}: {}", nick_name, e);
+                    RepoError::DbError(DbError::QueryError(e.to_string()))
+                }
             })?;
 
         if updated_rows > 0 {

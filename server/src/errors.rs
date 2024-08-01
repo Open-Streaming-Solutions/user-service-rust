@@ -24,6 +24,9 @@ pub enum RepoError {
     #[error("User not found")]
     UserNotFound,
 
+    #[error("AlreadyExists: {0}")]
+    AlreadyExists(String),
+
     #[error("Unknown error: {0}")]
     Unknown(String),
 }

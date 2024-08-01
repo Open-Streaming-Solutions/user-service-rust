@@ -57,9 +57,9 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
         &self, request: Request<CreateUserRequest>,
     ) -> Result<Response<()>, Status> {
         info!(
-            "Received CreateUser request for UUID: {}",
-            request.get_ref().uuid
-        );
+        "Received CreateUser request for UUID: {}",
+        request.get_ref().uuid
+    );
         let req = request.into_inner();
         let user_id = validate_uuid(&req.uuid).await?;
         validate_user_name(&req.username).await?;
@@ -76,7 +76,11 @@ impl<R: UserRepository + 'static> UserService for UserServiceCore<R> {
         let user = User::new(user_id, req.username, req.email).await;
         self.repository.add_user(user).await.map_err(|e| {
             error!("Failed to add user: {:?}", e);
-            Status::internal("Internal server error")
+            match e {
+                RepoError::AlreadyExists(msg) => Status::already_exists(msg),
+                RepoError::DbError(..) => Status::internal("Internal Server Error"),
+                _ => Status::internal("Internal server error"),
+            }
         })?;
         info!("User {} added successfully", req.uuid);
 
