@@ -38,8 +38,8 @@ message GetUserByIdResponse {
 
 message UpdateUserRequest {
   string UUID = 1;
-  string username = 2;
-  string email = 3;
+  optional string username = 2;
+  optional string email = 3;
 }
 
 message UpdateUserResponse {
@@ -55,12 +55,4 @@ message User {
   string UUID = 1;
   string username = 2;
   string email = 3;
-}
-
-message GetUserIdByNicknameRequest {
-  string username = 1;
-}
-
-message GetUserIdByNicknameResponse {
-  string UUID = 1;
 }
