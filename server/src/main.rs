@@ -2,7 +2,6 @@ use chrono::Local;
 use fern::colors::{Color, ColoredLevelConfig};
 use lib_rpc::userpb::user_service_server::UserServiceServer;
 use log::info;
-use std::sync::Arc;
 use tonic::transport::Server;
 
 mod app;
@@ -60,10 +59,10 @@ fn setup_logger(log_level: &str) -> Result<(), fern::InitError> {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() {
     let config = Config::from_env();
 
-    setup_logger(config.get_log_level())?;
+    setup_logger(config.get_log_level()).expect("Logger initialization failed");
 
     info!("Initializing the UserServiceServer...");
 
@@ -75,16 +74,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .unwrap();
 
-    let user_service = UserServiceCore {
-        repository: Arc::new(db_repository),
-    };
-
+    let user_service = UserServiceCore::new(db_repository.into()).await;
+    //ToDo Сделать обработку ошибок
     info!("UserServiceServer listening on {}", config.get_server_addr());
-
     Server::builder()
         .add_service(UserServiceServer::new(user_service))
         .serve(config.get_server_addr().parse().unwrap())
-        .await?;
+        .await.expect("Initializing Server failed");
 
-    Ok(())
+
 }

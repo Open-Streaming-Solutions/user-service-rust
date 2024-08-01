@@ -12,14 +12,10 @@ use uuid::Uuid;
 
 #[async_trait]
 impl UserRepository for DbRepository {
-    async fn add_user(&self, user: User) -> Result<(), RepoError> {
-        trace!("Adding user: {:?}", user);
+    async fn add_user(&self, new_user: User) -> Result<(), RepoError> {
+        trace!("Adding user: {:?}", new_user);
         let conn = &mut self.get_conn()?;
-        let new_user = User {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-        };
+
         diesel::insert_into(users::table())
             .values(&new_user)
             .execute(conn)
@@ -60,13 +56,13 @@ impl UserRepository for DbRepository {
     async fn get_user_id(&self, user_id: &Uuid) -> Result<Option<Uuid>, RepoError> {
         debug!("Fetching user ID with ID: {}", user_id);
         self.get_user(user_id).await.map(|user| {
-            let user_id = user.map(|u| u.id);
+            let user_id = user.map(|u| u.get_id());
             debug!("Fetched user ID with ID {:?}: {:?}", user_id, user_id);
             user_id
         })
     }
 
-    async fn get_user_id_by_nickname(&self, nickname: &str) -> Result<Option<Uuid>, RepoError> {
+    async fn get_user_id_by_username(&self, nickname: &str) -> Result<Option<Uuid>, RepoError> {
         debug!("Fetching user ID with nickname: {}", nickname);
         let conn = &mut self.get_conn()?;
         let result = users
@@ -90,8 +86,8 @@ impl UserRepository for DbRepository {
         let target = users.filter(id.eq(user_id));
         let updated_rows = diesel::update(target)
             .set((
-                username.eq(updated_user.username),
-                email.eq(updated_user.email),
+                username.eq(updated_user.get_username()),
+                email.eq(updated_user.get_email()),
             ))
             .execute(conn)
             .map_err(|e| {
@@ -109,7 +105,7 @@ impl UserRepository for DbRepository {
     }
 
     ///Переделать
-    async fn update_user_by_nickname(
+    async fn update_user_by_username(
         &self, nick_name: &str, updated_user: User,
     ) -> Result<Option<()>, RepoError> {
         debug!(
@@ -120,8 +116,8 @@ impl UserRepository for DbRepository {
         let target = users.filter(username.eq(nick_name));
         let updated_rows = diesel::update(target)
             .set((
-                username.eq(updated_user.username),
-                email.eq(updated_user.email),
+                username.eq(updated_user.get_username()),
+                email.eq(updated_user.get_email()),
             ))
             .execute(conn)
             .map_err(|e| {
@@ -192,11 +188,9 @@ mod tests {
         let repo = DbRepository { pool: pool.clone() };
         clear_test_db(&pool);
 
-        let user = User {
-            id: Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap(),
-            username: "testuser".to_string(),
-            email: "testuser@test.com".to_string(),
-        };
+        let user_id =  Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
+        let user = User::new(user_id, "New User".to_string(), "new@example.com".to_string()).await;
+
         let result = repo.add_user(user.clone()).await;
         assert!(result.is_ok(), "User should be added successfully");
 
@@ -204,7 +198,7 @@ mod tests {
         assert!(all_users.is_ok(), "Should retrieve all users successfully");
         let all_users = all_users.unwrap();
         assert_eq!(all_users.len(), 1);
-        assert_eq!(all_users[0].username, "testuser");
+        assert_eq!(all_users[0].get_username(), "New User");
     }
 
     #[tokio::test]
@@ -214,12 +208,10 @@ mod tests {
         let repo = DbRepository { pool: pool.clone() };
         clear_test_db(&pool);
 
-        let user_id = Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
-        let user = User {
-            id: user_id,
-            username: "testuser".to_string(),
-            email: "testuser@test.com".to_string(),
-        };
+        let user_id =  Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
+        let user = User::new(user_id, "New User".to_string(), "new@example.com".to_string()).await;
+
+
         let result = repo.add_user(user.clone()).await;
         assert!(result.is_ok(), "User should be added successfully");
 
@@ -227,7 +219,7 @@ mod tests {
         assert!(fetched_user.is_ok(), "Should retrieve user successfully");
         let fetched_user = fetched_user.unwrap();
         assert!(fetched_user.is_some());
-        assert_eq!(fetched_user.unwrap().username, "testuser");
+        assert_eq!(fetched_user.unwrap().get_username(), "New User");
     }
 
     #[tokio::test]
@@ -237,12 +229,10 @@ mod tests {
         let repo = DbRepository { pool: pool.clone() };
         clear_test_db(&pool);
 
-        let user_id = Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
-        let user = User {
-            id: user_id,
-            username: "testuser".to_string(),
-            email: "testuser@test.com".to_string(),
-        };
+        let user_id =  Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
+        let user = User::new(user_id, "New User".to_string(), "new@example.com".to_string()).await;
+
+
         let result = repo.add_user(user.clone()).await;
         assert!(result.is_ok(), "User should be added successfully");
 
@@ -263,16 +253,14 @@ mod tests {
         let repo = DbRepository { pool: pool.clone() };
         clear_test_db(&pool);
 
-        let user_id = Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
-        let user = User {
-            id: user_id,
-            username: "testuser".to_string(),
-            email: "testuser@test.com".to_string(),
-        };
+        let user_id =  Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
+        let user = User::new(user_id, "TestUser".to_string(), "new@example.com".to_string()).await;
+
+
         let result = repo.add_user(user.clone()).await;
         assert!(result.is_ok(), "User should be added successfully");
 
-        let fetched_user_id = repo.get_user_id_by_nickname("testuser").await;
+        let fetched_user_id = repo.get_user_id_by_username("TestUser").await;
         assert!(
             fetched_user_id.is_ok(),
             "Should retrieve user ID by nickname successfully"
@@ -289,20 +277,14 @@ mod tests {
         let repo = DbRepository { pool: pool.clone() };
         clear_test_db(&pool);
 
-        let user_id = Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
-        let user = User {
-            id: user_id,
-            username: "testuser".to_string(),
-            email: "testuser@test.com".to_string(),
-        };
+        let user_id =  Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
+        let user = User::new(user_id, "NewUser".to_string(), "new@example.com".to_string()).await;
+
         let result = repo.add_user(user.clone()).await;
         assert!(result.is_ok(), "User should be added successfully");
 
-        let updated_user = User {
-            id: user_id,
-            username: "updateduser".to_string(),
-            email: "updateduser@test.com".to_string(),
-        };
+        let updated_user = User::new(user_id, "UpdatedUser".to_string(), "updateduser@test.com".to_string()).await;
+
         let result = repo.update_user_by_id(&user_id, updated_user.clone()).await;
         assert!(result.is_ok(), "User should be updated successfully");
         let result = result.unwrap();
@@ -312,7 +294,7 @@ mod tests {
         assert!(fetched_user.is_ok(), "Should retrieve user successfully");
         let fetched_user = fetched_user.unwrap();
         assert!(fetched_user.is_some());
-        assert_eq!(fetched_user.unwrap().username, "updateduser");
+        assert_eq!(fetched_user.unwrap().get_username(), "UpdatedUser");
     }
 
     #[tokio::test]
@@ -323,22 +305,14 @@ mod tests {
         clear_test_db(&pool);
 
         let user_id = Uuid::parse_str("0189a30a-60c7-7135-b683-7d7f3783d4b7").unwrap();
-        let user = User {
-            id: user_id,
-            username: "testuser".to_string(),
-            email: "testuser@test.com".to_string(),
-        };
+        let user = User::new(user_id, "NewUser".to_string(), "new@example.com".to_string()).await;
+
         let result = repo.add_user(user.clone()).await;
         assert!(result.is_ok(), "User should be added successfully");
 
-        let updated_user = User {
-            id: user_id,
-            username: "updateduser".to_string(),
-            email: "updateduser@test.com".to_string(),
-        };
-        let result = repo
-            .update_user_by_nickname("testuser", updated_user.clone())
-            .await;
+        let updated_user = User::new(user_id, "UpdatedUser".to_string(), "updateduser@test.com".to_string()).await;
+
+        let result = repo.update_user_by_username("NewUser", updated_user.clone()).await;
         assert!(result.is_ok(), "User should be updated successfully");
         let result = result.unwrap();
         assert!(result.is_some());
@@ -347,7 +321,7 @@ mod tests {
         assert!(fetched_user.is_ok(), "Should retrieve user successfully");
         let fetched_user = fetched_user.unwrap();
         assert!(fetched_user.is_some());
-        assert_eq!(fetched_user.unwrap().username, "updateduser");
+        assert_eq!(fetched_user.unwrap().get_username(), "UpdatedUser");
     }
 }
 
