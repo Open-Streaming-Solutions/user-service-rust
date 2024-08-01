@@ -25,7 +25,7 @@ impl DbRepository {
         //Переделать это
         let mut first_attempt = true;
         let pool = loop {
-            let manager = ConnectionManager::<PgConnection>::new(database_url.clone());
+            let manager = ConnectionManager::<PgConnection>::new(database_url);
             match Pool::builder().build(manager) {
                 Ok(p) => {
                     if !first_attempt {
