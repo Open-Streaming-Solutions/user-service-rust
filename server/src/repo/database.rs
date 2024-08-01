@@ -162,7 +162,7 @@ mod tests {
             DbError::ConnectionError("TEST_DATABASE_URL must be set".to_string())
         })?;
 
-        let db_repo = DbRepository::new(database_url)?;
+        let db_repo = DbRepository::new(&database_url)?;
 
         db_repo.manage_migration()?;
 

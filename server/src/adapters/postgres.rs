@@ -16,13 +16,13 @@ pub struct DbRepository {
 }
 
 impl DbRepository {
-    pub fn new(database_url: String) -> Result<Self, DbError> {
+    pub fn new(database_url: &str) -> Result<Self, DbError> {
         debug!(
             "Creating new DbRepository with database URL: {}",
             &database_url
         );
 
-        ///Переделать это
+        //Переделать это
         let mut first_attempt = true;
         let pool = loop {
             let manager = ConnectionManager::<PgConnection>::new(database_url.clone());

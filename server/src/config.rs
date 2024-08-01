@@ -2,8 +2,9 @@ use std::env;
 
 #[derive(Debug)]
 pub struct Config {
-    pub database_url: String,
-    pub server_addr: String,
+    database_url: String,
+    server_addr: String,
+    log_level: String,
 }
 
 impl Config {
@@ -15,10 +16,22 @@ impl Config {
         let server_port = env::var("SERVER_PORT").unwrap_or_else(|_| "8080".to_string());
         let server_host = env::var("SERVER_HOST").expect("SERVER_HOST must be set");
         let server_addr = format!("{}:{}", server_host, server_port);
+        let log_level = env::var("LOG_LEVEL").expect("LOG_LEVEL must be set");
 
         Config {
             database_url,
             server_addr,
+            log_level,
         }
+    }
+    pub fn get_database_url(&self) -> &str {
+        &self.database_url
+    }
+    pub fn get_server_addr(&self) -> &str {
+        &self.server_addr
+    }
+
+    pub fn get_log_level(&self) -> &str {
+        &self.log_level
     }
 }

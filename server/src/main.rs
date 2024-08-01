@@ -25,13 +25,23 @@ struct Args {
     port: usize,
 }
 */
-fn setup_logger() -> Result<(), fern::InitError> {
+fn setup_logger(log_level: &str) -> Result<(), fern::InitError> {
+    let log_level = match log_level.to_lowercase().as_str() {
+        "trace" => log::LevelFilter::Trace,
+        "debug" => log::LevelFilter::Debug,
+        "info" => log::LevelFilter::Info,
+        "warn" => log::LevelFilter::Warn,
+        "error" => log::LevelFilter::Error,
+        _ => log::LevelFilter::Debug, // Уровень по умолчанию
+    };
+
     let colors = ColoredLevelConfig::new()
         .trace(Color::White)
         .debug(Color::White)
         .error(Color::Red)
         .warn(Color::Yellow)
         .info(Color::Cyan);
+
     fern::Dispatch::new()
         .format(move |out, message, record| {
             out.finish(format_args!(
@@ -42,23 +52,23 @@ fn setup_logger() -> Result<(), fern::InitError> {
                 message
             ))
         })
-        .level(log::LevelFilter::Debug)
+        .level(log_level)
         .chain(std::io::stdout())
         .apply()?;
+
     Ok(())
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    setup_logger()?;
-    //let args = Args::parse();
-
     let config = Config::from_env();
+
+    setup_logger(config.get_log_level())?;
 
     info!("Initializing the UserServiceServer...");
 
-    ///Переделать
-    let db_repository = DbRepository::new(config.database_url)
+    //Переделать
+    let db_repository = DbRepository::new(config.get_database_url())
         .map_err(|e| {
             eprintln!("Failed to create DbRepository: {:?}", e);
             e
@@ -69,11 +79,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         repository: Arc::new(db_repository),
     };
 
-    info!("UserServiceServer listening on {}", config.server_addr);
+    info!("UserServiceServer listening on {}", config.get_server_addr());
 
     Server::builder()
         .add_service(UserServiceServer::new(user_service))
-        .serve(config.server_addr.parse().unwrap())
+        .serve(config.get_server_addr().parse().unwrap())
         .await?;
 
     Ok(())
